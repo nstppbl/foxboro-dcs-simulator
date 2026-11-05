@@ -5,21 +5,21 @@ import { M4 } from './modules/m4-io'
 import { M5 } from './modules/m5-naming'
 import { M6 } from './modules/m6-concepts'
 import { M7 } from './modules/m7-blocks'
+import { M8 } from './modules/m8-hlbl'
+import { M9 } from './modules/m9-testing'
 import type { GlossaryEntry, Lesson, Module, Question, Tx } from './types'
 
-export const MODULES: Module[] = [M1, M2, M3, M4, M5, M6, M7]
+export const MODULES: Module[] = [M1, M2, M3, M4, M5, M6, M7, M8, M9]
 
 /** Modules in the programme that are not written yet. */
 export const PLANNED: { n: number; title: string }[] = [
-  { n: 8, title: 'Исполнение и состояния: Hold/Track, OOS, BAD, статусы' },
-  { n: 9, title: 'Тревоги и Alarm Management: от CAD до Alarm Window, ISA-18.2' },
-  { n: 10, title: 'Последовательности: HLBL, SFC, batch-фазы' },
-  { n: 11, title: 'Инжиниринг: IACC/ICC → Control Editors, Galaxy, Deploy, Checkpoint' },
-  { n: 12, title: 'HMI: FoxView/FoxDraw → Control HMI, Framer, права' },
-  { n: 13, title: 'Тренды и история' },
-  { n: 14, title: 'System Management: System Manager, SMON-домены' },
-  { n: 15, title: 'System Definition: Commit, Install, хосты' },
-  { n: 16, title: 'Интеграция и безопасность: FDC280, Triconex, IEC 62443, FAT/SAT' },
+  { n: 10, title: 'I/A-конфигурирование глубоко: IACC/ICC, Download, Compare/Upload, Checkpoint' },
+  { n: 11, title: 'P&ID и control narrative → конфигурация; как писать FDS и DDS' },
+  { n: 12, title: 'Состояния блоков: Hold/Track, OOS, BAD, статусы' },
+  { n: 13, title: 'Тревоги и Alarm Management (ISA-18.2)' },
+  { n: 14, title: 'FoxView / FoxDraw (и Control HMI обзорно), тренды' },
+  { n: 15, title: 'System Manager и System Definition' },
+  { n: 16, title: 'Интеграция и безопасность: FDC280, SIS, кибербезопасность' },
 ]
 
 export const tx = (t: Tx | undefined, lang: 'ru' | 'en') => (t === undefined ? '' : typeof t === 'string' ? t : t[lang])
@@ -105,6 +105,23 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'MA / LR', def: 'Manual/Auto и Local/Remote; MANSW > AUTSW, LOCSW > REMSW.', module: 'm7' },
   { term: 'CINHIB', def: 'Подавление тревог compound с приоритетом ≥ значения.', module: 'm7' },
   { term: 'PIN / DMZ', now: 'PIN', def: 'Информационная сеть завода, отделённая от PCN межсетевыми экранами.', module: 'm2' },
+  {
+    term: 'IND / DEP / EXC / MON / TIM',
+    def: 'Блоки последовательностей: супервизор / нормальные операции / альтернативная (аварийная) стратегия / мониторинг ненормальных условий / таймеры (4 в блоке).',
+    module: 'm8',
+  },
+  { term: 'SSTATE', def: 'Состояние последовательностей compound: 0 все неактивны, 1 активны MON/IND/DEP без EXC, 2 активен EXC.', module: 'm8' },
+  { term: 'PLB', def: 'Ladder logic, выполняется в дискретном FBM; PLB — интерфейс в CP.', module: 'm8' },
+  { term: 'ISA-88', def: 'Стандарт batch: рецепт → процедура → операция → фаза; состояния и команды фаз.', module: 'm8' },
+  { term: 'URS / FDS / DDS', def: 'Требования пользователя / функциональная спецификация / детальная спецификация реализации в Foxboro.', module: 'm9' },
+  { term: 'FAT / SAT', def: 'Приёмочные испытания на стенде интегратора / на объекте.', module: 'm9' },
+  { term: 'IQ / OQ / PQ', def: 'Квалификация установки / функционирования / эксплуатационная (на процессе).', module: 'm9' },
+  { term: 'Loop check', def: 'Проверка каждого сигнала от прибора до HMI (4/8/12/16/20 мА).', module: 'm9' },
+  { term: 'GAMP 5', def: 'Руководство по валидации компьютеризированных систем; V-модель, категории ПО (4 — конфигурируемое, 5 — заказное).', module: 'm9' },
+  { term: 'Change control', def: 'Порядок изменений валидированной системы: запрос → оценка влияния → утверждение → реализация → тест → закрытие.', module: 'm9' },
+  { term: 'Deviation', def: 'Отклонение: запись о несоответствии (например, тест не прошёл) с расследованием и исправлением.', module: 'm9' },
+  { term: 'Audit trail', def: 'Журнал изменений: кто, когда, что, старое и новое значение (21 CFR Part 11, Annex 11).', module: 'm9' },
+  { term: 'ALCOA+', def: 'Принципы целостности данных: Attributable, Legible, Contemporaneous, Original, Accurate + полные, последовательные, долговечные, доступные.', module: 'm9' },
   { term: 'HLBL', def: 'High Level Batch Language — язык последовательных блоков (IND, DEP, EXC, MON).' },
   { term: 'SFC', now: 'FoxSFC / Sequence Block SFC Editor', def: 'Последовательности в виде шагов и переходов.' },
 ]

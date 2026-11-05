@@ -9,6 +9,8 @@ export interface Question {
   id: string
   kind: QKind
   q: Tx
+  /** code shown under the question (HLBL, configuration excerpt) */
+  code?: string
   /** options for single / multi */
   options?: Tx[]
   /** single: index; multi: indexes; tf: boolean; num: value */

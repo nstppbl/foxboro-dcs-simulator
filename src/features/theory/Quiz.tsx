@@ -108,6 +108,7 @@ export function Quiz({ title, questions, onDone, shuffleQ = false }: { title: st
       <div className="text-[15px] font-medium leading-snug" data-testid="quiz-q">
         {tx(q.q, lang)}
       </div>
+      {q.code && <pre className="font-mono text-[12px] bg-[#1f252b] text-[#d8e2ea] p-2 overflow-x-auto whitespace-pre">{q.code}</pre>}
       {q.kind === 'multi' && <div className="text-xs text-gray-500">{T('Отметьте все правильные варианты', 'Select all correct options')}</div>}
       {q.kind === 'num' ? (
         <input
