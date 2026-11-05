@@ -12,7 +12,7 @@ export function AlarmList({ compact = false }: { compact?: boolean }) {
   const rows = compact ? cad.slice(0, 6) : cad
   return (
     <div className="flex flex-col min-h-0">
-      <div className="titlebar">
+      <div className="titlebar" data-help="screen:cad">
         Current Alarms ({cad.length})<span className="flex-1" />
         <button className="btn !py-0 text-black normal-case" onClick={ackAll} disabled={!cad.some((a) => !a.acked)}>
           <Check size={12} /> {L('Ack all', 'Квит. все')}

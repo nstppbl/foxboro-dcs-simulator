@@ -157,6 +157,7 @@ export function StrategyEditor() {
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData('text/fox-block', t.type)}
                     onClick={() => addBlock(t.type)}
+                    data-help={`block:${t.type}`}
                     title={t.desc[lang]}
                     className="btn !px-1.5 font-mono cursor-grab"
                   >
@@ -260,7 +261,7 @@ export function StrategyEditor() {
             const st = blockState(c, b, cp)
             const on = selB === b.name
             return (
-              <g key={b.name} data-block={b.name}>
+              <g key={b.name} data-block={b.name} data-help={`block:${b.type}`}>
                 <rect x={b.x} y={b.y} width={W} height={g.h} fill="#f4f5f6" stroke={on ? '#d01c1c' : '#5a636b'} strokeWidth={on ? 2.5 : 1.2} />
                 <g
                   className="cursor-move"

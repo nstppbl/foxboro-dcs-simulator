@@ -1,3 +1,4 @@
+import { HelpButton } from '../../help/HelpUi'
 import { useEffect, useState } from 'react'
 import { bool, num } from '../../engine/blocks/common'
 import { compileHlbl } from '../../engine/blocks/hlbl'
@@ -104,6 +105,7 @@ export function BlockDetail({ b }: { b: Block }) {
           {ref} · {b.type}
         </span>
         <span className="normal-case font-normal opacity-80 truncate">{String(b.p.DESCRP)}</span>
+        <HelpButton topic={`block:${b.type}`} light />
       </div>
       <div className="flex flex-wrap gap-0 border-b border-fox-edge bg-fox-panel">
         {pages.map((p) => (

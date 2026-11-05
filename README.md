@@ -24,8 +24,8 @@ Progress and your topology are saved in the browser (localStorage).
 | 2 | Control engine: compounds, blocks, PERIOD/PHASE, alarms, HLBL (ch. 4) | done |
 | 3 | Engineering: Control Editors-style Strategy Editor + legacy ICC sheets (ch. 5) | done |
 | 4 | Process models: tank, flow line, heat exchanger, batch reactor, WFI, CIP in HLBL | done |
-| 5 | Operator HMI: FoxView + Control HMI, faceplates, trends, alarms (ch. 3, 6-12) | next |
-| 6 | Fault injection + System Manager (ch. 13) | planned |
+| 5 | Operator HMI: process graphics, group displays, Alarm Manager, horn; built-in help ("?", F1 help mode, Reference) | done |
+| 6 | Fault injection + System Manager (ch. 13) | next |
 | 7 | Curriculum: theory, guided labs, tests, scoring | planned |
 
 ## Architecture Builder features
@@ -69,3 +69,11 @@ src/
   i18n/              RU/EN strings
   store/             zustand stores persisted to localStorage
 ```
+
+## Operator displays and help (Stage 5)
+
+- **Operator** view (FoxView style): Process Alarm key (blinks in the colour of the highest unacknowledged priority), one process graphic per scenario (TANK2_DISP, T101_DISP, P201_DISP, E301_DISP, R401_DISP, WFI_DISP, CIP_DISP), GROUP displays with up to 8 faceplates, and an alarm banner.
+- Click any value, controller bubble, valve or pump on a graphic to pick its faceplate; DETAIL opens the block detail display.
+- **Alarm Manager**: Current Alarms, Most Recent, Unacknowledged and History views; filters by COMPOUND:BLOCK wildcard (`REACTOR:*`, `*:TIC*`), priority and alarm type; softkeys ACK ALARM, ACK PAGE, CLEAR RTN, TOP PRIORITY, BLOCK DETAIL, SILENCE HORN.
+- **Alarm horn** (Web Audio): Tone 1 for priority 1, Tone 2 for priorities 2-5; Silence stops it until the next new alarm; the bell button turns it off.
+- **Help**: a "?" next to blocks and screens; **Help mode** (header button or F1): the next click on any element opens its help; **Reference**: searchable index of all blocks, parameters, screens and equipment. Block pages explain how the block works, its key parameters, typical use and common mistakes, in Russian or English (parameter names stay in English).

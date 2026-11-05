@@ -14,7 +14,7 @@ export function ProcessPanel() {
   const sc = scenario(sid)
   return (
     <div className="flex flex-col min-h-0 h-full">
-      <div className="titlebar">
+      <div className="titlebar" data-help="screen:process">
         PROCESS · {sc.title[lang]}
       </div>
       <div className="p-3 overflow-auto space-y-3 text-[12px]">

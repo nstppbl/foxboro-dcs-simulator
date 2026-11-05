@@ -13,3 +13,49 @@ body { @apply bg-fox-bg text-black font-sans text-[13px]; margin: 0; }
   .field { @apply border border-fox-edge bg-white px-1 py-0.5 text-xs font-mono w-full; }
   .lbl { @apply text-[11px] text-gray-700; }
 }
+
+/* ---------- help ---------- */
+.help-h {
+  @apply text-[11px] font-semibold uppercase tracking-wide text-fox-navy mb-1;
+}
+body.help-mode,
+body.help-mode * {
+  cursor: help !important;
+}
+body.help-mode [data-help] {
+  outline: 1px dashed rgba(234, 179, 8, 0.9);
+  outline-offset: 1px;
+}
+body.help-mode [data-help]:hover {
+  outline: 2px solid #eab308;
+  background-color: rgba(253, 224, 71, 0.25);
+}
+
+/* ---------- operator displays ---------- */
+@keyframes fox-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+.fox-blink {
+  animation: fox-blink 1s steps(1) infinite;
+}
+@keyframes fox-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.fox-flow {
+  stroke-dasharray: 14 10;
+  animation: fox-flow 0.8s linear infinite;
+}
+@keyframes fox-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.fox-spin {
+  animation: fox-spin 1s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}

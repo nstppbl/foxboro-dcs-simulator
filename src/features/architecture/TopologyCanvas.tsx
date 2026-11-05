@@ -223,6 +223,7 @@ export function TopologyCanvas({ issues, traceIds, traceBroken }: Props) {
             return (
               <g
                 key={n.id}
+                data-help={`hw:${t.id}`}
                 transform={`translate(${n.x},${n.y})`}
                 onPointerDown={(e) => onPointerDownNode(e, n)}
                 onDoubleClick={() => fam === 'instrument' && s.setTrace(n.id)}

@@ -75,7 +75,7 @@ export function ParamTable({ b, groups, config = false, showLinks = false }: { b
       <tbody>
         {defs.map((d) => (
           <tr key={d.name} className="border-b border-fox-edge/20 hover:bg-white/60">
-            <td className="px-2 py-0.5 font-mono font-semibold whitespace-nowrap">
+            <td className="px-2 py-0.5 font-mono font-semibold whitespace-nowrap" data-help={`param:${b.type}.${d.name}`}>
               {d.name}
               <span className="ml-1 text-[10px] text-gray-500">{d.type}</span>
             </td>

@@ -17,7 +17,7 @@ export function CompoundDetail({ c }: { c: string }) {
   const cinhib = num(cmp.p.CINHIB)
   return (
     <div className="flex flex-col min-h-0 h-full">
-      <div className="titlebar">
+      <div className="titlebar" data-help="screen:compound">
         {station.db.letterbug} · COMPOUND {c}
         <span className="normal-case font-normal opacity-80">{String(cmp.p.DESCRP)}</span>
       </div>

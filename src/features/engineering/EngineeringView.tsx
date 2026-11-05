@@ -26,17 +26,17 @@ export function EngineeringView() {
     <div className="h-full flex flex-col min-h-0">
       <div className="flex flex-wrap items-center gap-2 px-2 py-1 bg-fox-panel border-b border-fox-edge text-xs">
         <div className="flex border border-fox-edge">
-          <button className={`px-2 py-1 ${e.editor === 'csd' ? 'bg-fox-navy text-white' : 'bg-fox-panel2'}`} onClick={() => e.setEditor('csd')}>
+          <button className={`px-2 py-1 ${e.editor === 'csd' ? 'bg-fox-navy text-white' : 'bg-fox-panel2'}`} onClick={() => e.setEditor('csd')} data-help="screen:strategy">
             Strategy Editor (Control Editors)
           </button>
-          <button className={`px-2 py-1 ${e.editor === 'icc' ? 'bg-fox-navy text-white' : 'bg-fox-panel2'}`} onClick={() => e.setEditor('icc')}>
+          <button className={`px-2 py-1 ${e.editor === 'icc' ? 'bg-fox-navy text-white' : 'bg-fox-panel2'}`} onClick={() => e.setEditor('icc')} data-help="screen:icc">
             ICC ({L('classic', 'классический')})
           </button>
         </div>
-        <button className="btn" onClick={() => e.validate()}>
+        <button data-help="screen:validate" className="btn" onClick={() => e.validate()}>
           <CheckSquare size={12} /> Validate
         </button>
-        <button className="btn btn-on" onClick={() => e.download()}>
+        <button data-help="screen:validate" className="btn btn-on" onClick={() => e.download()}>
           <Download size={12} /> Download → {e.cfg.letterbug}
         </button>
         <button className="btn" onClick={() => e.upload()} title={L('Copy the current CP values (for example, tuning changed from displays) into the configuration', 'Скопировать текущие значения CP (например, настройку, изменённую с дисплеев) в конфигурацию')}>

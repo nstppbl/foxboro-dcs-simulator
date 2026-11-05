@@ -34,6 +34,7 @@ export function Palette() {
                   title={tb(c.desc)}
                   className="px-2 py-1 border-b border-fox-edge/30 hover:bg-white cursor-grab text-xs flex justify-between gap-2"
                   data-palette={c.id}
+                  data-help={`hw:${c.id}`}
                 >
                   <span className="font-mono font-semibold">{c.label}</span>
                   {c.era !== 'both' && (

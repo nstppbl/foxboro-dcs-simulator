@@ -51,6 +51,7 @@ export function FoxSelect() {
                     <div
                       key={bn}
                       onClick={() => select({ kind: 'block', c: cn, b: bn })}
+                      data-help={b ? `block:${b.type}` : undefined}
                       className={`flex items-center gap-2 pl-7 pr-1 cursor-pointer ${bs ? 'bg-fox-navy text-white' : 'hover:bg-fox-panel2'}`}
                     >
                       <span className="flex-1 truncate">{bn}</span>

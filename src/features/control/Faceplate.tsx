@@ -51,8 +51,8 @@ export function Faceplate({ b }: { b: Block }) {
   const cyan = !bool(useSim.getState().station.compound(b.compound)?.p.ON)
 
   return (
-    <div className="bg-black text-white font-mono text-[12px] w-[230px] shrink-0 border-2 border-gray-500 select-none">
-      <div className="px-2 py-1 border-b border-gray-700" style={{ background: crit ? priColor(crit) : '#1d3b6e', color: crit === 5 ? '#000' : '#fff' }}>
+    <div className="bg-black text-white font-mono text-[12px] w-[230px] shrink-0 border-2 border-gray-500 select-none" data-help="screen:faceplate" data-testid={`fp-${b.name}`}>
+      <div data-help={`block:${b.type}`} className="px-2 py-1 border-b border-gray-700" style={{ background: crit ? priColor(crit) : '#1d3b6e', color: crit === 5 ? '#000' : '#fff' }}>
         <div className="font-bold">{b.name}</div>
         <div className="text-[10px] truncate">{String(b.p.DESCRP || b.type)}</div>
       </div>
@@ -66,6 +66,27 @@ export function Faceplate({ b }: { b: Block }) {
         )}
         {b.type === 'AIN' && <Bar value={meas} lo={num(b.p.LSCO1)} hi={num(b.p.HSCO1)} color={bool(b.p.BAD) ? '#00c8d8' : '#e8e8e8'} label="PNT" />}
         {b.type === 'AOUT' && <Bar value={out} lo={outLo} hi={outHi} color="#00b050" label="OUT" />}
+        {(b.type === 'DOUT' || b.type === 'DIN') && (
+          <div className="flex flex-col items-center gap-2 py-6">
+            <div className="w-16 h-16 border-4" style={{ borderColor: bool(b.p.COUT ?? b.p.CIN) ? '#00d060' : '#888', background: bool(b.p.COUT ?? b.p.CIN) ? '#004818' : '#222' }} />
+            <div>{bool(b.p.COUT ?? b.p.CIN) ? 'ON / OPEN' : 'OFF / CLOSED'}</div>
+          </div>
+        )}
+        {b.type === 'HLBL' && (
+          <div className="px-2 py-2 w-full space-y-1">
+            <Row k="STATE" v={String(b.p.STATE)} />
+            <Row k="STMNO" v={fmt(b.p.STMNO)} />
+            <div className="text-[11px] text-cyan-300 break-words">{String(b.p.LASTMSG || '')}</div>
+            {String(b.p.PERROR || '') && <div className="text-[11px] text-red-400 break-words">{String(b.p.PERROR)}</div>}
+          </div>
+        )}
+        {b.type === 'CALC' && (
+          <div className="px-2 py-2 w-full space-y-0.5">
+            {['RO01', 'RO02', 'RO03', 'RO04', 'BO01', 'BO02'].map((k) => (
+              <Row key={k} k={k} v={fmt(b.p[k])} />
+            ))}
+          </div>
+        )}
         {b.type === 'MTR' && (
           <div className="flex flex-col items-center gap-2 py-6">
             <div className="w-16 h-16 rounded-full border-4" style={{ borderColor: bool(b.p.MSTAT) ? '#00d060' : '#e01010', background: bool(b.p.MSTAT) ? '#004818' : '#400' }} />
@@ -94,14 +115,32 @@ export function Faceplate({ b }: { b: Block }) {
       <div className="grid grid-cols-2 gap-1 p-2">
         {hasMA && (
           <>
-            <FpBtn on={auto} onClick={() => set(b.compound, b.name, 'MA', true)}>AUTO</FpBtn>
-            <FpBtn on={!auto} onClick={() => set(b.compound, b.name, 'MA', false)}>MAN</FpBtn>
+            <FpBtn on={auto} h="param:MA" onClick={() => set(b.compound, b.name, 'MA', true)}>AUTO</FpBtn>
+            <FpBtn on={!auto} h="param:MA" onClick={() => set(b.compound, b.name, 'MA', false)}>MAN</FpBtn>
           </>
         )}
         {isPid && (
           <>
-            <FpBtn on={!remote} onClick={() => set(b.compound, b.name, 'LR', false)}>LOCAL</FpBtn>
-            <FpBtn on={remote} onClick={() => set(b.compound, b.name, 'LR', true)}>REMOTE</FpBtn>
+            <FpBtn on={!remote} h="param:LR" onClick={() => set(b.compound, b.name, 'LR', false)}>LOCAL</FpBtn>
+            <FpBtn on={remote} h="param:LR" onClick={() => set(b.compound, b.name, 'LR', true)}>REMOTE</FpBtn>
+          </>
+        )}
+        {b.type === 'DOUT' && (
+          <>
+            <FpBtn on={bool(b.p.COUT)} onClick={() => set(b.compound, b.name, 'COUT', true)}>
+              ON
+            </FpBtn>
+            <FpBtn on={!bool(b.p.COUT)} onClick={() => set(b.compound, b.name, 'COUT', false)}>
+              OFF
+            </FpBtn>
+          </>
+        )}
+        {b.type === 'HLBL' && (
+          <>
+            <FpBtn on={bool(b.p.ACTIVE)} onClick={() => set(b.compound, b.name, 'ACTIVE', true)}>
+              START
+            </FpBtn>
+            <FpBtn onClick={() => set(b.compound, b.name, 'ACTIVE', false)}>ABORT</FpBtn>
           </>
         )}
         {b.type === 'MTR' && (
@@ -125,7 +164,7 @@ export function Faceplate({ b }: { b: Block }) {
         </div>
       )}
       <div className="p-2 pt-0">
-        <FpBtn onClick={() => ack(ref)} disabled={!bool(b.p.UNACK)}>
+        <FpBtn h="screen:cad" onClick={() => ack(ref)} disabled={!bool(b.p.UNACK)}>
           ACK
         </FpBtn>
       </div>
@@ -142,9 +181,10 @@ function Row({ k, v }: { k: string; v: string }) {
   )
 }
 
-function FpBtn({ children, on, onClick, disabled }: { children: React.ReactNode; on?: boolean; onClick: () => void; disabled?: boolean }) {
+function FpBtn({ children, on, onClick, disabled, h }: { children: React.ReactNode; on?: boolean; onClick: () => void; disabled?: boolean; h?: string }) {
   return (
     <button
+      data-help={h}
       onClick={onClick}
       disabled={disabled}
       className={`w-full border text-[11px] py-1 disabled:opacity-30 ${on ? 'bg-gray-200 text-black border-white' : 'bg-[#333] border-gray-500 hover:bg-[#555]'}`}

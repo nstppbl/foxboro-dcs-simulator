@@ -1,3 +1,4 @@
+import { HelpButton } from '../../help/HelpUi'
 import { useEffect, useState } from 'react'
 import { blockParams, blockState, compoundState, type CfgBlock, type CfgCompound } from '../../engine/config'
 import { BLOCK_TYPES } from '../../engine/registry'
@@ -73,7 +74,8 @@ export function BlockSheet({ c, b, compact = false }: { c: CfgCompound; b: CfgBl
           onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
         />
         <span className="lbl">TYPE</span>
-        <span className="font-mono font-semibold">{b.type}</span>
+        <span className="font-mono font-semibold" data-help={`block:${b.type}`}>{b.type}</span>
+        <HelpButton topic={`block:${b.type}`} />
         <StateBadge s={blockState(c, b, cp)} />
         <span className="flex-1" />
         <input className="field !w-28" placeholder={L('filter…', 'фильтр…')} value={filter} onChange={(e) => setFilter(e.target.value)} />
@@ -98,7 +100,7 @@ export function BlockSheet({ c, b, compact = false }: { c: CfgCompound; b: CfgBl
                 const changed = d.name in b.v
                 return (
                   <tr key={d.name} className="border-b border-fox-edge/20 align-top">
-                    <td className={`px-1 py-0.5 font-mono whitespace-nowrap ${changed || linked ? 'font-bold' : ''}`} title={d.desc}>
+                    <td className={`px-1 py-0.5 font-mono whitespace-nowrap ${changed || linked ? 'font-bold' : ''}`} title={d.desc} data-help={`param:${b.type}.${d.name}`}>
                       {d.name}
                       {d.conn && <span className="text-[9px] text-fox-navy ml-1">⇠</span>}
                     </td>
