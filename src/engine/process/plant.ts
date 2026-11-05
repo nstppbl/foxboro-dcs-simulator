@@ -72,7 +72,7 @@ export abstract class Plant {
     const i = this.inst(tag)
     const span = (i.hi ?? 100) - (i.lo ?? 0)
     let pct = ((v - (i.lo ?? 0)) / span) * 100
-    if (noisy && this.noise) pct += (this.rand() + this.rand() + this.rand() - 1.5) * this.noise
+    if (noisy && this.noise && pct > 0.5) pct += (this.rand() + this.rand() + this.rand() - 1.5) * this.noise
     this.pts.set(`${i.fbm}:${i.pnt}`, Math.max(-5, Math.min(105, pct)))
   }
   /** read an actuator signal in % (0-100) */
