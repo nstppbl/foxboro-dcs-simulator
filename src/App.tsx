@@ -1,61 +1,45 @@
-import {
-  BookOpen,
-  Cpu,
-  Network,
-  Monitor,
-  Wrench,
-  Workflow,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { ArchitectureBuilder } from "./features/architecture/ArchitectureBuilder";
-import { ControlView } from "./features/control/ControlView";
-import { EngineeringView } from "./features/engineering/EngineeringView";
-import { OperatorView } from "./features/operator/OperatorView";
-import { HelpControls, HelpDrawer } from "./help/HelpUi";
-import { useNav, type View } from "./store/nav";
-import { useLang, useT, type UiKey } from "./i18n/i18n";
+import { BookOpen, Cpu, Network, Monitor, Wrench, Workflow } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArchitectureBuilder } from './features/architecture/ArchitectureBuilder'
+import { ControlView } from './features/control/ControlView'
+import { EngineeringView } from './features/engineering/EngineeringView'
+import { OperatorView } from './features/operator/OperatorView'
+import { HelpControls, HelpDrawer } from './help/HelpUi'
+import { useNav, type View } from './store/nav'
+import { useLang, useT, type UiKey } from './i18n/i18n'
 
 const NAV: { id: View; key: UiKey; icon: typeof Network; ready: boolean }[] = [
-  { id: "architecture", key: "nav_architecture", icon: Network, ready: true },
-  { id: "control", key: "nav_control", icon: Cpu, ready: true },
-  { id: "engineering", key: "nav_engineering", icon: Workflow, ready: true },
-  { id: "operator", key: "nav_operator", icon: Monitor, ready: true },
-  { id: "faults", key: "nav_faults", icon: Wrench, ready: false },
-  { id: "curriculum", key: "nav_curriculum", icon: BookOpen, ready: false },
-];
+  { id: 'architecture', key: 'nav_architecture', icon: Network, ready: true },
+  { id: 'control', key: 'nav_control', icon: Cpu, ready: true },
+  { id: 'engineering', key: 'nav_engineering', icon: Workflow, ready: true },
+  { id: 'operator', key: 'nav_operator', icon: Monitor, ready: true },
+  { id: 'faults', key: 'nav_faults', icon: Wrench, ready: false },
+  { id: 'curriculum', key: 'nav_curriculum', icon: BookOpen, ready: false },
+]
 
 export default function App() {
-  const { t } = useT();
-  const { lang, setLang } = useLang();
-  const view = useNav((s) => s.view);
-  const setView = useNav((s) => s.go);
-  const [now, setNow] = useState(new Date());
+  const { t } = useT()
+  const { lang, setLang } = useLang()
+  const view = useNav((s) => s.view)
+  const setView = useNav((s) => s.go)
+  const [now, setNow] = useState(new Date())
   useEffect(() => {
-    const h = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(h);
-  }, []);
+    const h = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(h)
+  }, [])
 
   return (
     <div className="h-full flex flex-col">
       {/* FoxView-style system bar */}
       <header className="flex flex-wrap items-center gap-3 bg-[#3a4450] text-white px-3 py-1 border-b-2 border-black">
-        <div className="font-semibold tracking-wide">{t("appTitle")}</div>
-        <div className="text-[11px] text-gray-300 font-mono">
-          ENV: Initial · USER: trainee
-        </div>
+        <div className="font-semibold tracking-wide">{t('appTitle')}</div>
+        <div className="text-[11px] text-gray-300 font-mono">ENV: Initial · USER: trainee</div>
         <div className="flex-1" />
-        <div className="font-mono text-xs">
-          {now.toLocaleString(lang === "ru" ? "ru-RU" : "en-GB")}
-        </div>
+        <div className="font-mono text-xs">{now.toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-GB')}</div>
         <HelpControls />
         <div className="flex border border-gray-400" data-help-ui>
-          {(["ru", "en"] as const).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
-              className={`px-2 text-xs uppercase ${lang === l ? "bg-white text-black" : "hover:bg-gray-600"}`}
-              data-lang={l}
-            >
+          {(['ru', 'en'] as const).map((l) => (
+            <button key={l} onClick={() => setLang(l)} className={`px-2 text-xs uppercase ${lang === l ? 'bg-white text-black' : 'hover:bg-gray-600'}`} data-lang={l}>
               {l}
             </button>
           ))}
@@ -67,35 +51,31 @@ export default function App() {
             <button
               key={n.id}
               onClick={() => setView(n.id)}
-              className={`flex items-start gap-2 text-left px-3 py-2 min-w-[150px] lg:min-w-0 border-r lg:border-r-0 border-b border-fox-edge/40 text-xs ${view === n.id ? "bg-fox-navy text-white" : "hover:bg-white"}`}
+              className={`flex items-start gap-2 text-left px-3 py-2 min-w-[150px] lg:min-w-0 border-r lg:border-r-0 border-b border-fox-edge/40 text-xs ${view === n.id ? 'bg-fox-navy text-white' : 'hover:bg-white'}`}
             >
               <n.icon size={16} className="shrink-0 mt-0.5" />
               <span>
                 {t(n.key)}
-                {!n.ready && (
-                  <span className="block text-[10px] opacity-70">
-                    {t("soon")}
-                  </span>
-                )}
+                {!n.ready && <span className="block text-[10px] opacity-70">{t('soon')}</span>}
               </span>
             </button>
           ))}
         </nav>
         <main className="flex-1 min-w-0 min-h-0 overflow-y-auto lg:overflow-hidden">
-          {view === "architecture" ? (
+          {view === 'architecture' ? (
             <ArchitectureBuilder />
-          ) : view === "control" ? (
+          ) : view === 'control' ? (
             <ControlView />
-          ) : view === "engineering" ? (
+          ) : view === 'engineering' ? (
             <EngineeringView />
-          ) : view === "operator" ? (
+          ) : view === 'operator' ? (
             <OperatorView />
           ) : (
-            <div className="p-8 text-sm text-gray-800">{t("stageNote")}</div>
+            <div className="p-8 text-sm text-gray-800">{t('stageNote')}</div>
           )}
         </main>
       </div>
       <HelpDrawer />
     </div>
-  );
+  )
 }

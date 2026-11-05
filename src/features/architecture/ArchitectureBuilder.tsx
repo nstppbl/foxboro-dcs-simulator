@@ -1,5 +1,5 @@
-import { Cable, MousePointer2 } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { Cable, ClipboardList, MousePointer2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { analyzeNetwork } from '../../domain/hardware/network'
 import { PRESETS } from '../../domain/hardware/presets'
 import { validateTopology } from '../../domain/hardware/rules'
@@ -7,6 +7,7 @@ import { traceSignal } from '../../domain/hardware/trace'
 import { useT } from '../../i18n/i18n'
 import { useTopology } from '../../store/topology'
 import { BottomPanel } from './BottomPanel'
+import { ExercisePanel, ExercisePicker } from './ExercisePanel'
 import { Inspector } from './Inspector'
 import { Palette } from './Palette'
 import { TopologyCanvas } from './TopologyCanvas'
@@ -14,6 +15,7 @@ import { TopologyCanvas } from './TopologyCanvas'
 export function ArchitectureBuilder() {
   const { t, tb } = useT()
   const s = useTopology()
+  const [picker, setPicker] = useState(false)
   const topo = useMemo(() => ({ nodes: s.nodes, links: s.links }), [s.nodes, s.links])
   const failed = useMemo(() => new Set(s.failed), [s.failed])
   const issues = useMemo(() => validateTopology(topo, failed), [topo, failed])
@@ -38,16 +40,15 @@ export function ArchitectureBuilder() {
   }, [s.toast, s.clearToast])
 
   return (
-    <div className="lg:h-full grid grid-cols-1 lg:grid-cols-[210px_1fr_290px] lg:grid-rows-[auto_1fr_190px] gap-1 p-1 min-h-0">
+    <div className="lg:h-full grid grid-cols-1 lg:grid-cols-[210px_1fr_320px] lg:grid-rows-[auto_1fr_190px] gap-1 p-1 min-h-0">
       {/* toolbar */}
       <div className="lg:col-span-3 panel flex items-center gap-2 px-2 py-1 flex-wrap">
+        <button className={`btn ${s.exerciseId ? 'btn-on' : ''}`} onClick={() => setPicker(true)} data-testid="ex-open">
+          <ClipboardList size={12} /> {tb({ en: 'Tasks (spec → design → check)', ru: 'Задания (ТЗ → проект → проверка)' })}
+        </button>
+        <span className="mx-1 h-5 border-l border-fox-edge" />
         <span className="lbl">{t('preset')}:</span>
-        <select
-          className="field !w-auto"
-          value={s.presetId}
-          onChange={(e) => s.loadPreset(e.target.value)}
-          data-testid="preset"
-        >
+        <select className="field !w-auto" value={s.presetId} onChange={(e) => s.loadPreset(e.target.value)} data-testid="preset">
           {PRESETS.map((p) => (
             <option key={p.id} value={p.id}>
               {tb(p.name)}
@@ -79,9 +80,7 @@ export function ArchitectureBuilder() {
       </div>
       <div className="panel min-h-0 relative h-[60vh] lg:h-auto">
         <TopologyCanvas issues={issues} traceIds={trace?.nodeIds ?? []} traceBroken={!!trace?.broken} />
-        {s.mode === 'connect' && (
-          <div className="absolute top-2 left-2 bg-fox-navy text-white text-xs px-2 py-1 rounded shadow">{t('connect_hint')}</div>
-        )}
+        {s.mode === 'connect' && <div className="absolute top-2 left-2 bg-fox-navy text-white text-xs px-2 py-1 rounded shadow">{t('connect_hint')}</div>}
         {s.toast && (
           <div
             className={`absolute bottom-10 left-1/2 -translate-x-1/2 text-xs px-3 py-2 rounded shadow max-w-[560px] ${s.toast.ok ? 'bg-fox-ok text-white' : 'bg-fox-alarm text-white'}`}
@@ -91,12 +90,20 @@ export function ArchitectureBuilder() {
           </div>
         )}
       </div>
-      <div className="min-h-0 h-72 lg:h-auto lg:row-span-2">
-        <Inspector />
+      <div className="min-h-0 lg:h-auto lg:row-span-2 flex flex-col gap-1">
+        {s.exerciseId && (
+          <div className="min-h-0 h-96 lg:h-auto lg:flex-[3]">
+            <ExercisePanel />
+          </div>
+        )}
+        <div className="min-h-0 h-72 lg:h-auto lg:flex-[2]">
+          <Inspector />
+        </div>
       </div>
       <div className="min-h-0 h-64 lg:h-auto">
         <BottomPanel issues={issues} trace={trace} net={net} />
       </div>
+      {picker && <ExercisePicker onClose={() => setPicker(false)} />}
     </div>
   )
 }

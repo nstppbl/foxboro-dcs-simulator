@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { CATALOG_BY_ID, type Era } from '../domain/hardware/catalog'
 import { canConnect, familyOf, neighbors, nodeIndex, type ConnectResult, type HwNode, type Topology } from '../domain/hardware/model'
 import { PRESETS } from '../domain/hardware/presets'
+import { baseSystem, exercise } from '../domain/hardware/exercises'
 
 export type Mode = 'select' | 'connect'
 
@@ -30,6 +31,16 @@ interface TopologyState extends Topology {
   setTrace: (id: string | null) => void
   setEra: (e: Era | 'all') => void
   clearToast: () => void
+  /** active architecture exercise (task + automatic checks) */
+  exerciseId?: string
+  /** best score per exercise, % */
+  exBest: Record<string, number>
+  /** requirements whose hint was opened (costs nothing, shown in the result) */
+  exHints: string[]
+  loadExercise: (id: string) => void
+  quitExercise: () => void
+  recordScore: (id: string, pct: number) => void
+  showHint: (rid: string) => void
 }
 
 let seq = Date.now() % 100000
@@ -75,14 +86,15 @@ export const useTopology = create<TopologyState>()(
 
       loadPreset: (id) => {
         const p = PRESETS.find((x) => x.id === id) ?? PRESETS[0]
-        set((st) => ({ ...p.build(), presetId: p.id, fitNonce: st.fitNonce + 1, selected: null, failed: [], traceFrom: null, connectFrom: null }))
+        set((st) => ({ ...p.build(), presetId: p.id, exerciseId: undefined, fitNonce: st.fitNonce + 1, selected: null, failed: [], traceFrom: null, connectFrom: null }))
       },
 
       addNode: (typeId, x, y) => {
         const s = get()
         const t = CATALOG_BY_ID[typeId]
         const node: HwNode = { id: uid('n'), typeId, x, y, letterbug: suggestLetterbug(s, typeId) }
-        if (t.family === 'switch') node.side = s.nodes.filter((n) => familyOf(n) === 'switch' && n.side === 'A').length <= s.nodes.filter((n) => familyOf(n) === 'switch' && n.side === 'B').length ? 'A' : 'B'
+        if (t.family === 'switch')
+          node.side = s.nodes.filter((n) => familyOf(n) === 'switch' && n.side === 'A').length <= s.nodes.filter((n) => familyOf(n) === 'switch' && n.side === 'B').length ? 'A' : 'B'
         if (t.family === 'instrument') {
           const prefix = typeId.startsWith('TE') ? 'TE' : typeId === 'PUMP' ? 'P' : typeId
           node.tag = `${prefix}${100 + s.nodes.filter((n) => familyOf(n) === 'instrument').length + 1}`
@@ -142,10 +154,22 @@ export const useTopology = create<TopologyState>()(
       setTrace: (traceFrom) => set({ traceFrom }),
       setEra: (eraFilter) => set({ eraFilter }),
       clearToast: () => set({ toast: null }),
+
+      exBest: {},
+      exHints: [],
+      loadExercise: (id) => {
+        const ex = exercise(id)
+        if (!ex) return
+        const topo = ex.start === 'empty' ? { nodes: [], links: [] } : ex.start === 'base' ? baseSystem() : (PRESETS.find((p) => p.id === ex.start) ?? PRESETS[0]).build()
+        set((st) => ({ ...topo, exerciseId: id, exHints: [], presetId: 'empty', fitNonce: st.fitNonce + 1, selected: null, failed: [], traceFrom: null, connectFrom: null, eraFilter: 'all' }))
+      },
+      quitExercise: () => set({ exerciseId: undefined, exHints: [] }),
+      recordScore: (id, pct) => set((s) => ({ exBest: { ...s.exBest, [id]: Math.max(pct, s.exBest[id] ?? 0) } })),
+      showHint: (rid) => set((s) => ({ exHints: s.exHints.includes(rid) ? s.exHints : [...s.exHints, rid] })),
     }),
     {
       name: 'fox.topology.v1',
-      partialize: (s) => ({ nodes: s.nodes, links: s.links, failed: s.failed, eraFilter: s.eraFilter, presetId: s.presetId }),
+      partialize: (s) => ({ nodes: s.nodes, links: s.links, failed: s.failed, eraFilter: s.eraFilter, presetId: s.presetId, exerciseId: s.exerciseId, exBest: s.exBest, exHints: s.exHints }),
     },
   ),
 )
