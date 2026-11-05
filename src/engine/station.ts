@@ -194,6 +194,11 @@ export class ControlStation {
         const last = b.st.lastT as number | undefined
         const dt = last === undefined ? PERIOD_SECONDS[period] ?? 0.5 : this.time - last
         b.st.lastT = this.time
+        // fetch every connected input, so displays show the current linked value
+        for (const [param, src] of Object.entries(b.links)) {
+          const r = this.read(src, b.compound)
+          if (r) b.p[param] = r.v
+        }
         def.exec(b, this.ctxFor(dt))
       }
     }

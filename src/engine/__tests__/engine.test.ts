@@ -116,3 +116,13 @@ describe('HLBL', () => {
     expect(lc(s).p.SPT).toBe(3)
   })
 })
+
+describe('connected inputs', () => {
+  it('show the current source value (LC100.BCALCI = LV100.BCALCO)', () => {
+    const s = new ControlStation(tank2Db())
+    s.run(300)
+    const lv = s.block('TANK2_COMP', 'LV100')!
+    expect(Number(lc(s).p.BCALCI)).toBeCloseTo(Number(lv.p.BCALCO), 0)
+    expect(Number(lc(s).p.FBK)).toBeGreaterThan(40)
+  })
+})
