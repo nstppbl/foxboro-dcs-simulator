@@ -1,5 +1,6 @@
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import { useEffect } from 'react'
+import { useEng } from '../../store/engineering'
 import { useSim } from '../../store/sim'
 import { AlarmList, Journal } from './AlarmList'
 import { BlockDetail } from './BlockDetail'
@@ -39,7 +40,7 @@ export function ControlView() {
         <button
           className="btn"
           onClick={() => {
-            if (confirm(L('Reload the TANK2 lab database? All changes are lost.', 'Перезагрузить базу лабы TANK2? Все изменения будут потеряны.'))) s.reset('tank2')
+            if (confirm(L('Reload the TANK2 lab database? All changes are lost.', 'Перезагрузить базу лабы TANK2? Все изменения будут потеряны.'))) useEng.getState().resetLab('full')
           }}
         >
           <RotateCcw size={12} /> {L('Reload TANK2 lab', 'Перезагрузить лабу TANK2')}

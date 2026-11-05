@@ -22,8 +22,8 @@ Progress and your topology are saved in the browser (localStorage).
 |---|---|---|
 | 1 | Architecture Builder (manual ch. 2) | done |
 | 2 | Control engine: compounds, blocks, PERIOD/PHASE, alarms, HLBL (ch. 4) | done |
-| 3 | Engineering: Control Editors-style Strategy Editor + legacy ICC sheets (ch. 5) | next |
-| 4 | Process models incl. pharma (bioreactor, WFI, CIP in HLBL) | planned |
+| 3 | Engineering: Control Editors-style Strategy Editor + legacy ICC sheets (ch. 5) | done |
+| 4 | Process models incl. pharma (bioreactor, WFI, CIP in HLBL) | next |
 | 5 | Operator HMI: FoxView + Control HMI, faceplates, trends, alarms (ch. 3, 6-12) | planned |
 | 6 | Fault injection + System Manager (ch. 13) | planned |
 | 7 | Curriculum: theory, guided labs, tests, scoring | planned |
@@ -44,6 +44,13 @@ Progress and your topology are saved in the browser (localStorage).
 - HLBL subset: `:=`, IF/ELSE/ENDIF, WHILE/ENDWHILE, WAIT, WAITUNTIL, SENDMSG, EXIT, C:B.P references, compile errors with line numbers.
 - Lab database from LAB 1: TANK2_COMP (LT100, LC100, LV100 with the lab's parameters and alarm texts), PROCESS_2 (MTR_CNTRL, DEAD_TM, FLOW_CALC, LAG_TM) and TANK2_SEQ:FILL (HLBL fill sequence).
 - Control screen: FoxSelect tree, Block Detail pages CNTRL / CONFIG / TUNE / ALARMS / TREND, faceplate (AUTO/MAN, LOCAL/REMOTE, ramp 1 %/5 %, ACK), compound ON/OFF and CINHIB, CAD and alarm history, run/pause/speed.
+
+## Engineering (Stage 3)
+- Configuration database separate from the running CP; per-object state Added / Modified / Downloaded.
+- Strategy Editor (Control Editors / IACC CSD style): palette, drag-and-drop blocks, wire output → input with the mouse, cross-compound connection labels, execution-order badges, property sheet.
+- Classic ICC: compound list, block list in execution order (move up/down), parameter sheet where a C:B.P string makes a connection.
+- Validate (names, PERIOD/PHASE rules, connection syntax and targets, type mismatch, missing MEAS, bumpless BCALCI, alarm limits/priorities/text length, CALC steps, HLBL compile), Download (refused on errors; keeps unchanged blocks running, bumpless for modified ones), Upload, Compare to CP.
+- LAB 1 exercise: build TANK2_COMP from an empty compound, with live step checks.
 
 ## Code layout
 ```

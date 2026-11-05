@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { STATION_PRESETS, type StationPresetId } from '../engine/presets'
 import { ControlStation } from '../engine/station'
-import type { Block, Val } from '../engine/types'
+import { BLOCK_TYPES } from '../engine/registry'
+import type { Block, StationDb, Val } from '../engine/types'
 
 /** Values recorded for trending, per block type (manual: detail trend has 4 pens). */
 export const TREND_PENS: Record<string, string[]> = {
@@ -45,6 +46,8 @@ interface SimState {
   setRunning: (r: boolean) => void
   setSpeed: (s: number) => void
   reset: (p?: StationPresetId) => void
+  /** Replace the CP database. warm = fresh start at steady state; otherwise a Download that keeps runtime state. */
+  load: (db: StationDb, mode: 'warm' | 'download', changed?: Set<string>) => void
   set: (c: string, b: string, param: string, v: Val, config?: boolean) => boolean
   link: (c: string, b: string, param: string, src: string) => boolean
   ack: (ref: string) => void
@@ -134,6 +137,43 @@ export const useSim = create<SimState>()((set, get) => {
       warmUp(st, tr)
       lastSample = Math.floor(st.time)
       set({ station: st, preset, trends: tr, version: get().version + 1 })
+    },
+    load: (db, mode, changed) => {
+      const old = get().station
+      const st = new ControlStation(db)
+      if (mode === 'warm') {
+        const tr: Record<string, TrendBuf> = {}
+        warmUp(st, tr)
+        lastSample = Math.floor(st.time)
+        set({ station: st, trends: tr, version: get().version + 1 })
+        return
+      }
+      // Download: the CP keeps running; unchanged blocks keep everything, changed blocks
+      // keep their outputs and algorithm state (bumpless) but take the new configuration.
+      st.time = old.time
+      st.tick = old.tick
+      st.alarms = old.alarms
+      st.alarms.entries = st.alarms.entries.filter((e) => e.ref in st.db.blk)
+      for (const [ref, b] of Object.entries(st.db.blk)) {
+        const o = old.db.blk[ref]
+        if (!o || o.type !== b.type) continue
+        if (!changed?.has(ref)) {
+          b.p = o.p
+          b.st = o.st
+          b.bad = o.bad
+          continue
+        }
+        b.st = o.st
+        b.bad = o.bad
+        for (const d of BLOCK_TYPES[b.type].params) if (d.kind === 'out') b.p[d.name] = o.p[d.name]
+      }
+      for (const c of st.db.compounds) {
+        const oc = old.db.cmp[c]
+        if (oc && !changed?.has(c)) st.db.cmp[c].p = oc.p
+      }
+      const trends = get().trends
+      for (const k of Object.keys(trends)) if (!(k in st.db.blk)) delete trends[k]
+      set({ station: st, version: get().version + 1 })
     },
     set: (c, b, param, v, config) => {
       const err = get().station.set(c, b, param, v, { config })
