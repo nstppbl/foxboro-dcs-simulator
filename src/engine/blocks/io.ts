@@ -1,5 +1,5 @@
 import type { BlockTypeDef } from '../types'
-import { ALARM_OUT, AM, BAD_ALARM, COMMON, IO, P, badAlarm, bool, clamp, initMA, num, resolveMA } from './common'
+import { ALARM_OUT, AM, BAD_ALARM, COMMON, IO, P, badAlarm, bool, clamp, initMA, limitAlarm, num, resolveMA } from './common'
 
 /** AIN — Analog Input (manual 2001V8 p. 4-15). */
 export const AIN: BlockTypeDef = {
@@ -23,11 +23,19 @@ export const AIN: BlockTypeDef = {
     P('PNT', 'R', 0, 'out', 'Point value in engineering units', { settable: true, group: 'control' }),
     P('BAD', 'B', false, 'out', 'Input is BAD (FBM/channel failure or bad link)', { group: 'status' }),
     P('OOR', 'B', false, 'out', 'Input is out of range', { group: 'status' }),
+    P('PNTNM', 'S', '', 'cfg', 'Point alarm name (≤12 chars)', { group: 'alarm' }),
+    P('HLOP', 'I', 0, 'cfg', 'High/low absolute alarm option: 0 none, 1 both, 2 high, 3 low', { group: 'alarm' }),
+    P('HAL', 'R', 100, 'cfg', 'High absolute alarm limit (HIABS)', { settable: true, group: 'alarm' }),
+    P('LAL', 'R', 0, 'cfg', 'Low absolute alarm limit (LOABS)', { settable: true, group: 'alarm' }),
+    P('HLDB', 'R', 0, 'cfg', 'High/low alarm deadband', { group: 'alarm' }),
+    P('HLPR', 'I', 3, 'cfg', 'High/low alarm priority 1-5', { settable: true, group: 'alarm' }),
+    P('HATXT', 'S', '', 'cfg', 'High alarm text (≤28 chars)', { group: 'alarm' }),
+    P('LATXT', 'S', '', 'cfg', 'Low alarm text (≤28 chars)', { group: 'alarm' }),
     ...BAD_ALARM,
     ...ALARM_OUT,
   ],
   init: initMA,
-  alarms: ['BAD', 'OOR'],
+  alarms: ['BAD', 'OOR', 'HIABS', 'LOABS'],
   exec(b, ctx) {
     const auto = resolveMA(b, ctx)
     const hi = num(b.p.HSCO1)
@@ -57,7 +65,15 @@ export const AIN: BlockTypeDef = {
     b.p.BAD = bad
     b.p.OOR = oor
     b.bad.PNT = bad
-    ctx.alarm(b, [badAlarm(b, bad), { type: 'OOR', active: num(b.p.BAO) > 0 && oor && !bad, pri: num(b.p.BAP) || 3, text: 'OUT OF RANGE' }])
+    const hl = num(b.p.HLOP)
+    const pv = num(b.p.PNT)
+    const eu = String(b.p.EO1)
+    ctx.alarm(b, [
+      badAlarm(b, bad),
+      { type: 'OOR', active: num(b.p.BAO) > 0 && oor && !bad, pri: num(b.p.BAP) || 3, text: 'OUT OF RANGE' },
+      limitAlarm(b, 'HIABS', (hl === 1 || hl === 2) && !bad, true, pv, num(b.p.HAL), num(b.p.HLDB), num(b.p.HLPR), String(b.p.HATXT || 'HIGH'), eu),
+      limitAlarm(b, 'LOABS', (hl === 1 || hl === 3) && !bad, false, pv, num(b.p.LAL), num(b.p.HLDB), num(b.p.HLPR), String(b.p.LATXT || 'LOW'), eu),
+    ])
   },
 }
 

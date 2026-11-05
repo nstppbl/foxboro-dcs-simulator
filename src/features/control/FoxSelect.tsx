@@ -18,6 +18,12 @@ export function FoxSelect() {
     <div className="flex flex-col min-h-0 h-full">
       <div className="titlebar">FoxSelect</div>
       <div className="overflow-auto flex-1 bg-white font-mono text-[12px] py-1">
+        <div
+          onClick={() => select({ kind: 'process' })}
+          className={`px-2 mb-1 cursor-pointer border-b border-fox-edge/40 ${sel.kind === 'process' ? 'bg-fox-navy text-white' : 'hover:bg-fox-panel2 text-fox-ok font-semibold'}`}
+        >
+          ▣ {L('PROCESS (plant model)', 'ПРОЦЕСС (модель установки)')}
+        </div>
         <div className="px-2 font-semibold text-fox-navy">{db.letterbug}</div>
         {db.compounds.map((cn) => {
           const cmp = db.cmp[cn]

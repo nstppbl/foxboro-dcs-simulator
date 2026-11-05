@@ -165,7 +165,7 @@ export class ControlStation {
     let prtype = 0
     for (const c of conds) {
       const inhibited = bool(b.p.INHIB) || cinhibBlocks(cinhib, c.pri)
-      const name = String((/OUT$/.test(c.type) ? b.p.OUTNM : b.p.MEASNM) || b.name)
+      const name = String((/OUT$/.test(c.type) ? b.p.OUTNM : b.p.MEASNM ?? b.p.PNTNM) || b.name)
       this.alarms.update(this.time, { ref, compound: b.compound, block: b.name, name, descrp: String(b.p.DESCRP ?? ''), inhibited }, c)
       if (c.active && !inhibited && (crit === 0 || c.pri < crit)) {
         crit = c.pri

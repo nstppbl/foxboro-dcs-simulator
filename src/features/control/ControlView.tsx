@@ -1,14 +1,15 @@
-import { Pause, Play, RotateCcw } from 'lucide-react'
+import { Pause, Play } from 'lucide-react'
 import { useEffect } from 'react'
-import { useEng } from '../../store/engineering'
 import { useSim } from '../../store/sim'
 import { AlarmList, Journal } from './AlarmList'
 import { BlockDetail } from './BlockDetail'
 import { CompoundDetail } from './CompoundDetail'
 import { FoxSelect } from './FoxSelect'
+import { ProcessPanel } from './ProcessPanel'
+import { ScenarioPicker } from './ScenarioPicker'
 import { simTime, useL } from './ui'
 
-const SPEEDS = [1, 2, 5, 10, 30]
+const SPEEDS = [1, 2, 5, 10, 30, 60]
 
 export function ControlView() {
   const L = useL()
@@ -37,14 +38,7 @@ export function ControlView() {
         ))}
         <span className="font-mono">t = {simTime(s.station.time)}</span>
         <span className="flex-1" />
-        <button
-          className="btn"
-          onClick={() => {
-            if (confirm(L('Reload the TANK2 lab database? All changes are lost.', 'Перезагрузить базу лабы TANK2? Все изменения будут потеряны.'))) useEng.getState().resetLab('full')
-          }}
-        >
-          <RotateCcw size={12} /> {L('Reload TANK2 lab', 'Перезагрузить лабу TANK2')}
-        </button>
+        <ScenarioPicker />
       </div>
       <div className="flex-1 flex flex-col md:flex-row min-h-0">
         <div className="md:w-56 shrink-0 h-56 md:h-auto border-r border-fox-edge">
@@ -56,6 +50,7 @@ export function ControlView() {
             {sel.kind === 'compound' && <CompoundDetail c={sel.c} />}
             {sel.kind === 'cad' && <AlarmList />}
             {sel.kind === 'journal' && <Journal />}
+            {sel.kind === 'process' && <ProcessPanel />}
           </div>
           {sel.kind !== 'cad' && (
             <div className="max-h-44 flex flex-col border-t border-fox-edge">

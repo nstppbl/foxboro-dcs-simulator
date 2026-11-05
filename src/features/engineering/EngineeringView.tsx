@@ -1,8 +1,9 @@
-import { CheckSquare, Download, FlaskConical, Plus, RotateCcw, Trash2, Upload } from 'lucide-react'
+import { CheckSquare, Download, FlaskConical, Plus, Trash2, Upload } from 'lucide-react'
 import { useEffect } from 'react'
 import { compoundState } from '../../engine/config'
 import { useEng } from '../../store/engineering'
 import { useSim } from '../../store/sim'
+import { ScenarioPicker } from '../control/ScenarioPicker'
 import { useL } from '../control/ui'
 import { EngBottomPanel } from './BottomPanel'
 import { StateBadge } from './CfgSheet'
@@ -49,9 +50,7 @@ export function EngineeringView() {
         >
           <FlaskConical size={12} /> LAB 1: {L('build TANK2_COMP', 'собрать TANK2_COMP')}
         </button>
-        <button className="btn" onClick={() => confirm(L('Reload the complete TANK2 lab database? Your changes are lost.', 'Загрузить полную базу лабы TANK2? Ваши изменения будут потеряны.')) && e.resetLab('full')}>
-          <RotateCcw size={12} /> {L('Reload TANK2 lab', 'Перезагрузить лабу TANK2')}
-        </button>
+        <ScenarioPicker />
       </div>
 
       {/* compound tabs */}

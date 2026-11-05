@@ -13,45 +13,13 @@ import {
   type CfgDb,
   type CfgIssue,
 } from '../engine/config'
-import { tank2Db } from '../engine/presets'
+import { lab1Cfg, scenario, SCENARIOS } from '../engine/scenarios'
 import { paramDef } from '../engine/registry'
 import { parseRef } from '../engine/station'
 import type { Val } from '../engine/types'
 import { useSim } from './sim'
 
-const LAYOUT: Record<string, [number, number]> = {
-  'TANK2_COMP:LT100': [40, 60],
-  'TANK2_COMP:LC100': [330, 60],
-  'TANK2_COMP:LV100': [620, 60],
-  'PROCESS_2:DEAD_TM': [40, 60],
-  'PROCESS_2:FLOW_CALC': [330, 60],
-  'PROCESS_2:LAG_TM': [620, 60],
-  'PROCESS_2:MTR_CNTRL': [40, 280],
-  'TANK2_SEQ:FILL': [40, 60],
-}
-
-export function labCfg(): CfgDb {
-  const cfg = fromStationDb(tank2Db())
-  for (const c of cfg.compounds)
-    for (const b of c.blocks) {
-      const p = LAYOUT[`${c.name}:${b.name}`]
-      if (p) [b.x, b.y] = p
-    }
-  return cfg
-}
-
-/** LAB 1 exercise: TANK2_COMP exists but is empty; the trainee builds LT100, LC100, LV100. */
-export function lab1Cfg(): CfgDb {
-  const cfg = labCfg()
-  const t = cfg.compounds.find((c) => c.name === 'TANK2_COMP')!
-  t.blocks = []
-  // the trainee also makes the cross-compound connection LV100.OUT → PROCESS_2:DEAD_TM.MEAS
-  const dead = cfg.compounds.find((c) => c.name === 'PROCESS_2')!.blocks.find((b) => b.name === 'DEAD_TM')!
-  dead.links = {}
-  // the fill sequence refers to TANK2_COMP blocks; leave it for later
-  cfg.compounds = cfg.compounds.filter((c) => c.name !== 'TANK2_SEQ')
-  return cfg
-}
+export { lab1Cfg, labCfg } from '../engine/scenarios'
 
 export type EditorKind = 'csd' | 'icc'
 
@@ -65,6 +33,7 @@ interface EngState {
   issues?: CfgIssue[]
   log: string[]
   lab?: 'lab1'
+  scenario: string
   setEditor: (e: EditorKind) => void
   selectCompound: (c: string) => void
   selectBlock: (b?: string) => void
@@ -82,6 +51,7 @@ interface EngState {
   download: () => boolean
   upload: () => void
   resetLab: (which?: 'full' | 'lab1') => void
+  loadScenario: (id: string) => void
 }
 
 const toast = (text: string, err = false) => useSim.getState().notify(text, err)
@@ -104,8 +74,9 @@ export const useEng = create<EngState>()(
       }
       const cmp = (cfg: CfgDb, c: string) => cfg.compounds.find((x) => x.name === c)
       const blk = (cfg: CfgDb, c: string, b: string) => cmp(cfg, c)?.blocks.find((x) => x.name === b)
-      const lab = labCfg()
+      const lab = SCENARIOS[0].cfg()
       return {
+        scenario: 'tank2',
         cfg: lab,
         cp: cloneCfg(lab),
         editor: 'csd',
@@ -279,22 +250,31 @@ export const useEng = create<EngState>()(
           set({ cfg, cp: cloneCfg(cfg), issues: undefined, log: [...get().log, `Upload from ${db.letterbug}: current CP values copied into the configuration`] })
         },
         resetLab: (which = 'full') => {
-          const cfg = which === 'lab1' ? lab1Cfg() : labCfg()
-          useSim.getState().load(toStationDb(cfg), 'warm')
-          set({ cfg, cp: cloneCfg(cfg), issues: undefined, selC: 'TANK2_COMP', selB: undefined, lab: which === 'lab1' ? 'lab1' : undefined, log: [`Loaded ${which === 'lab1' ? 'LAB 1 exercise (empty TANK2_COMP)' : 'TANK2 lab database'} into ${cfg.letterbug}`] })
+          if (which === 'lab1') {
+            const cfg = lab1Cfg()
+            useSim.getState().load(toStationDb(cfg), 'warm')
+            set({ scenario: 'tank2', cfg, cp: cloneCfg(cfg), issues: undefined, selC: 'TANK2_COMP', selB: undefined, lab: 'lab1', log: [`Loaded LAB 1 exercise (empty TANK2_COMP) into ${cfg.letterbug}`] })
+          } else get().loadScenario(get().scenario)
+        },
+        loadScenario: (id) => {
+          const sc = scenario(id)
+          const cfg = sc.cfg()
+          useSim.getState().load(toStationDb(cfg), 'warm', undefined, sc.plant?.())
+          useSim.getState().select({ kind: 'compound', c: cfg.compounds[0].name })
+          set({ scenario: sc.id, cfg, cp: cloneCfg(cfg), issues: undefined, selC: cfg.compounds[0].name, selB: undefined, lab: undefined, log: [`Loaded scenario "${sc.title.en}" into ${cfg.letterbug}`] })
         },
       }
     },
-    { name: 'fox.eng.v1', partialize: (s) => ({ cfg: s.cfg, cp: s.cp, editor: s.editor, selC: s.selC, lab: s.lab }) },
+    { name: 'fox.eng.v1', partialize: (s) => ({ cfg: s.cfg, cp: s.cp, editor: s.editor, selC: s.selC, lab: s.lab, scenario: s.scenario }) },
   ),
 )
 
 // If the CP held a different configuration last time, start the simulated CP from it.
 {
-  const { cp } = useEng.getState()
-  if (JSON.stringify(cp) !== JSON.stringify(labCfg())) {
+  const { cp, scenario: sid } = useEng.getState()
+  if (sid !== 'tank2' || JSON.stringify(cp) !== JSON.stringify(SCENARIOS[0].cfg())) {
     try {
-      useSim.getState().load(toStationDb(cp), 'warm')
+      useSim.getState().load(toStationDb(cp), 'warm', undefined, scenario(sid).plant?.())
     } catch {
       useEng.getState().resetLab()
     }

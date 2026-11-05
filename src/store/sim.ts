@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { STATION_PRESETS, type StationPresetId } from '../engine/presets'
 import { ControlStation } from '../engine/station'
+import type { Plant } from '../engine/process/plant'
 import { BLOCK_TYPES } from '../engine/registry'
 import type { Block, StationDb, Val } from '../engine/types'
 
@@ -30,10 +31,12 @@ export interface TrendBuf {
   v: Record<string, number[]>
 }
 
-export type Selection = { kind: 'compound'; c: string } | { kind: 'block'; c: string; b: string } | { kind: 'cad' } | { kind: 'journal' }
+export type Selection = { kind: 'compound'; c: string } | { kind: 'block'; c: string; b: string } | { kind: 'cad' } | { kind: 'journal' } | { kind: 'process' }
 
 interface SimState {
   station: ControlStation
+  /** process model connected to the CP's FBM points (undefined for the TANK2 lab, which simulates in blocks) */
+  plant?: Plant
   preset: StationPresetId
   running: boolean
   speed: number
@@ -47,7 +50,7 @@ interface SimState {
   setSpeed: (s: number) => void
   reset: (p?: StationPresetId) => void
   /** Replace the CP database. warm = fresh start at steady state; otherwise a Download that keeps runtime state. */
-  load: (db: StationDb, mode: 'warm' | 'download', changed?: Set<string>) => void
+  load: (db: StationDb, mode: 'warm' | 'download', changed?: Set<string>, plant?: Plant) => void
   set: (c: string, b: string, param: string, v: Val, config?: boolean) => boolean
   link: (c: string, b: string, param: string, src: string) => boolean
   ack: (ref: string) => void
@@ -138,14 +141,16 @@ export const useSim = create<SimState>()((set, get) => {
       lastSample = Math.floor(st.time)
       set({ station: st, preset, trends: tr, version: get().version + 1 })
     },
-    load: (db, mode, changed) => {
+    load: (db, mode, changed, newPlant) => {
       const old = get().station
-      const st = new ControlStation(db)
+      const plant = mode === 'warm' ? newPlant : get().plant
+      const st = new ControlStation(db, plant?.field())
+      if (plant) st.onTick = (dt) => plant.step(dt)
       if (mode === 'warm') {
         const tr: Record<string, TrendBuf> = {}
         warmUp(st, tr)
         lastSample = Math.floor(st.time)
-        set({ station: st, trends: tr, version: get().version + 1 })
+        set({ station: st, plant, trends: tr, version: get().version + 1 })
         return
       }
       // Download: the CP keeps running; unchanged blocks keep everything, changed blocks
