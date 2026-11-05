@@ -1,13 +1,14 @@
 import { BookOpen, Cpu, Network, Monitor, Wrench, Workflow } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ArchitectureBuilder } from './features/architecture/ArchitectureBuilder'
+import { ControlView } from './features/control/ControlView'
 import { useLang, useT, type UiKey } from './i18n/i18n'
 
 type View = 'architecture' | 'control' | 'engineering' | 'operator' | 'faults' | 'curriculum'
 
 const NAV: { id: View; key: UiKey; icon: typeof Network; ready: boolean }[] = [
   { id: 'architecture', key: 'nav_architecture', icon: Network, ready: true },
-  { id: 'control', key: 'nav_control', icon: Cpu, ready: false },
+  { id: 'control', key: 'nav_control', icon: Cpu, ready: true },
   { id: 'engineering', key: 'nav_engineering', icon: Workflow, ready: false },
   { id: 'operator', key: 'nav_operator', icon: Monitor, ready: false },
   { id: 'faults', key: 'nav_faults', icon: Wrench, ready: false },
@@ -59,6 +60,8 @@ export default function App() {
         <main className="flex-1 min-w-0 min-h-0 overflow-y-auto lg:overflow-hidden">
           {view === 'architecture' ? (
             <ArchitectureBuilder />
+          ) : view === 'control' ? (
+            <ControlView />
           ) : (
             <div className="p-8 text-sm text-gray-800">{t('stageNote')}</div>
           )}

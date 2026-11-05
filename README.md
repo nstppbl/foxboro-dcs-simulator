@@ -21,8 +21,8 @@ Progress and your topology are saved in the browser (localStorage).
 | Stage | Area | Status |
 |---|---|---|
 | 1 | Architecture Builder (manual ch. 2) | done |
-| 2 | Control engine: compounds, blocks, PERIOD/PHASE, alarms (ch. 4) | next |
-| 3 | Engineering: Control Editors-style Strategy Editor + legacy ICC sheets (ch. 5) | planned |
+| 2 | Control engine: compounds, blocks, PERIOD/PHASE, alarms, HLBL (ch. 4) | done |
+| 3 | Engineering: Control Editors-style Strategy Editor + legacy ICC sheets (ch. 5) | next |
 | 4 | Process models incl. pharma (bioreactor, WFI, CIP in HLBL) | planned |
 | 5 | Operator HMI: FoxView + Control HMI, faceplates, trends, alarms (ch. 3, 6-12) | planned |
 | 6 | Fault injection + System Manager (ch. 13) | planned |
@@ -36,11 +36,20 @@ Progress and your topology are saved in the browser (localStorage).
 - Signal trace (double-click an instrument): instrument, TA, FBM channel, FCM/fieldbus, switches, CP (ECB, then AIN/AOUT), workstation. The path is highlighted on the canvas and shown as broken when a component on it has failed.
 - Presets: Classic I/A V8 (FCP270 + ZCP270), Foxboro DCS pharma bioreactor (FCP280, Star), a troubleshooting exercise with planted design errors, and an empty canvas.
 
+## Control engine (Stage 2)
+- Simulated CP2701 runs a 50 ms BPC; each block executes on its PERIOD/PHASE (table from manual p. 4-18). Connections use C:B.P or :B.P; a connected input is secured.
+- Blocks: AIN, AOUT, DIN, DOUT, PID, PIDA, RATIO, CALC (RPN steps), CHARC, SWCH, LLAG, DTIME, MTR, HLBL.
+- PID: MODOPT P/I/PD/PI/PID, PBAND/INT/DERIV, INCOPT, A/M, L/R, bumpless transfer via BCALCI/BCALCO, HIABS/LOABS/HHABS/LLABS/HIDEV/LODEV/HIOUT/LOOUT alarms with deadband, priority, text, CRIT/PRTYPE/UNACK.
+- Alarm manager: Current Alarms (CAD) ordering, ACK by block/compound, INHIB and compound CINHIB, history and messages.
+- HLBL subset: `:=`, IF/ELSE/ENDIF, WHILE/ENDWHILE, WAIT, WAITUNTIL, SENDMSG, EXIT, C:B.P references, compile errors with line numbers.
+- Lab database from LAB 1: TANK2_COMP (LT100, LC100, LV100 with the lab's parameters and alarm texts), PROCESS_2 (MTR_CNTRL, DEAD_TM, FLOW_CALC, LAG_TM) and TANK2_SEQ:FILL (HLBL fill sequence).
+- Control screen: FoxSelect tree, Block Detail pages CNTRL / CONFIG / TUNE / ALARMS / TREND, faceplate (AUTO/MAN, LOCAL/REMOTE, ramp 1 %/5 %, ACK), compound ON/OFF and CINHIB, CAD and alarm history, run/pause/speed.
+
 ## Code layout
 ```
 src/
   domain/hardware/   catalog, model + connection rules, validation, MESH analysis, trace, presets (pure TS, unit-tested)
-  engine/            CP scheduler skeleton (PERIOD table from manual p. 4-18, SimClock)
+  engine/            CP engine: scheduler, station (links, scan, alarms), block types, HLBL, lab databases (unit-tested)
   features/          UI per area (architecture/ now; control, engineering, operator, faults, curriculum next)
   i18n/              RU/EN strings
   store/             zustand stores persisted to localStorage
