@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { @apply bg-fox-bg text-black font-sans text-[13px]; margin: 0; }
+
+@layer components {
+  .panel { @apply bg-fox-panel border border-fox-edge; }
+  .titlebar { @apply bg-fox-navy text-white px-2 py-1 text-xs font-semibold tracking-wide uppercase flex items-center gap-2; }
+  .btn { @apply px-2 py-1 border border-fox-edge bg-fox-panel2 hover:bg-white active:bg-fox-panel text-xs inline-flex items-center gap-1 disabled:opacity-40; }
+  .btn-on { @apply bg-fox-navy text-white hover:bg-fox-navy2; }
+  .field { @apply border border-fox-edge bg-white px-1 py-0.5 text-xs font-mono w-full; }
+  .lbl { @apply text-[11px] text-gray-700; }
+}
