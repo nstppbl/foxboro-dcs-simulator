@@ -27,7 +27,7 @@ export default function App() {
   return (
     <div className="h-full flex flex-col">
       {/* FoxView-style system bar */}
-      <header className="flex items-center gap-3 bg-[#3a4450] text-white px-3 py-1 border-b-2 border-black">
+      <header className="flex flex-wrap items-center gap-3 bg-[#3a4450] text-white px-3 py-1 border-b-2 border-black">
         <div className="font-semibold tracking-wide">{t('appTitle')}</div>
         <div className="text-[11px] text-gray-300 font-mono">ENV: Initial · USER: trainee</div>
         <div className="flex-1" />
@@ -40,13 +40,13 @@ export default function App() {
           ))}
         </div>
       </header>
-      <div className="flex-1 flex min-h-0">
-        <nav className="w-52 bg-fox-panel border-r border-fox-edge flex flex-col">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+        <nav className="lg:w-52 shrink-0 bg-fox-panel border-b lg:border-b-0 lg:border-r border-fox-edge flex lg:flex-col overflow-x-auto">
           {NAV.map((n) => (
             <button
               key={n.id}
               onClick={() => setView(n.id)}
-              className={`flex items-start gap-2 text-left px-3 py-2 border-b border-fox-edge/40 text-xs ${view === n.id ? 'bg-fox-navy text-white' : 'hover:bg-white'}`}
+              className={`flex items-start gap-2 text-left px-3 py-2 min-w-[150px] lg:min-w-0 border-r lg:border-r-0 border-b border-fox-edge/40 text-xs ${view === n.id ? 'bg-fox-navy text-white' : 'hover:bg-white'}`}
             >
               <n.icon size={16} className="shrink-0 mt-0.5" />
               <span>
@@ -56,7 +56,7 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <main className="flex-1 min-w-0 min-h-0">
+        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto lg:overflow-hidden">
           {view === 'architecture' ? (
             <ArchitectureBuilder />
           ) : (

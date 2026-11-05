@@ -38,9 +38,9 @@ export function ArchitectureBuilder() {
   }, [s.toast, s.clearToast])
 
   return (
-    <div className="h-full grid grid-cols-[210px_1fr_290px] grid-rows-[auto_1fr_190px] gap-1 p-1 min-h-0">
+    <div className="lg:h-full grid grid-cols-1 lg:grid-cols-[210px_1fr_290px] lg:grid-rows-[auto_1fr_190px] gap-1 p-1 min-h-0">
       {/* toolbar */}
-      <div className="col-span-3 panel flex items-center gap-2 px-2 py-1 flex-wrap">
+      <div className="lg:col-span-3 panel flex items-center gap-2 px-2 py-1 flex-wrap">
         <span className="lbl">{t('preset')}:</span>
         <select
           className="field !w-auto"
@@ -69,15 +69,15 @@ export function ArchitectureBuilder() {
           </button>
         ))}
         <span className="flex-1" />
-        <span className="text-[11px] text-gray-700 max-w-[420px] truncate" title={tb(PRESETS.find((p) => p.id === s.presetId)?.desc)}>
+        <span className="text-[11px] text-gray-700 max-w-full lg:max-w-[420px] truncate" title={tb(PRESETS.find((p) => p.id === s.presetId)?.desc)}>
           {tb(PRESETS.find((p) => p.id === s.presetId)?.desc)}
         </span>
       </div>
 
-      <div className="min-h-0 row-span-2">
+      <div className="min-h-0 h-56 lg:h-auto lg:row-span-2">
         <Palette />
       </div>
-      <div className="panel min-h-0 relative">
+      <div className="panel min-h-0 relative h-[60vh] lg:h-auto">
         <TopologyCanvas issues={issues} traceIds={trace?.nodeIds ?? []} traceBroken={!!trace?.broken} />
         {s.mode === 'connect' && (
           <div className="absolute top-2 left-2 bg-fox-navy text-white text-xs px-2 py-1 rounded shadow">{t('connect_hint')}</div>
@@ -91,10 +91,10 @@ export function ArchitectureBuilder() {
           </div>
         )}
       </div>
-      <div className="min-h-0 row-span-2">
+      <div className="min-h-0 h-72 lg:h-auto lg:row-span-2">
         <Inspector />
       </div>
-      <div className="min-h-0">
+      <div className="min-h-0 h-64 lg:h-auto">
         <BottomPanel issues={issues} trace={trace} net={net} />
       </div>
     </div>
