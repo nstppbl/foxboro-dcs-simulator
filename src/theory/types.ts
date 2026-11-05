@@ -32,6 +32,8 @@ export interface InterviewQ {
 
 export interface Practice {
   label: Tx
+  /** open an HLBL lab in the theory section instead of another view */
+  lab?: string
   view: View
   /** load an architecture exercise */
   exercise?: string

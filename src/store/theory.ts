@@ -17,6 +17,10 @@ interface TheoryState {
   examBest: Record<string, number>
   interviewBest: Record<string, number>
   srs: Record<string, SrsItem>
+  labCode: Record<string, string>
+  labBest: Record<string, number>
+  saveLab: (id: string, code: string) => void
+  labDone: (id: string, pct: number) => void
   open: (lessonId: string) => void
   markRead: (lessonId: string) => void
   quizDone: (key: string, pct: number, kind: 'quiz' | 'exam') => void
@@ -34,15 +38,22 @@ export const useTheory = create<TheoryState>()(
       examBest: {},
       interviewBest: {},
       srs: {},
+      labCode: {},
+      labBest: {},
+      saveLab: (id, code) => set((s) => ({ labCode: { ...s.labCode, [id]: code } })),
+      labDone: (id, pct) => set((s) => ({ labBest: { ...s.labBest, [id]: Math.max(pct, s.labBest[id] ?? 0) } })),
       open: (lesson) => set({ lesson }),
       markRead: (id) => set((s) => ({ read: { ...s.read, [id]: Date.now() } })),
       quizDone: (key, pct, kind) =>
         set((s) => (kind === 'quiz' ? { quizBest: { ...s.quizBest, [key]: Math.max(pct, s.quizBest[key] ?? 0) } } : { examBest: { ...s.examBest, [key]: Math.max(pct, s.examBest[key] ?? 0) } })),
       interviewDone: (id, pct) => set((s) => ({ interviewBest: { ...s.interviewBest, [id]: Math.max(pct, s.interviewBest[id] ?? 0) } })),
       answer: (qid, ok, now = Date.now()) => set((s) => ({ srs: srsNext(s.srs, qid, ok, now) })),
-      reset: () => set({ read: {}, quizBest: {}, examBest: {}, interviewBest: {}, srs: {} }),
+      reset: () => set({ read: {}, quizBest: {}, examBest: {}, interviewBest: {}, srs: {}, labCode: {}, labBest: {} }),
     }),
-    { name: 'fox.theory.v1', partialize: (s) => ({ lesson: s.lesson, read: s.read, quizBest: s.quizBest, examBest: s.examBest, interviewBest: s.interviewBest, srs: s.srs }) },
+    {
+      name: 'fox.theory.v1',
+      partialize: (s) => ({ lesson: s.lesson, read: s.read, quizBest: s.quizBest, examBest: s.examBest, interviewBest: s.interviewBest, srs: s.srs, labCode: s.labCode, labBest: s.labBest }),
+    },
   ),
 )
 

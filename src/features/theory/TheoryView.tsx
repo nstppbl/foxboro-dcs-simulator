@@ -1,4 +1,4 @@
-import { BookOpen, CheckCircle2, ChevronRight, GraduationCap, Library, MessagesSquare, Play, RefreshCcw, Trophy } from 'lucide-react'
+import { BookOpen, CheckCircle2, ChevronRight, FlaskConical, GraduationCap, Library, MessagesSquare, Play, RefreshCcw, Trophy } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useLang } from '../../i18n/i18n'
 import { useEng } from '../../store/engineering'
@@ -9,8 +9,19 @@ import { ALL_INTERVIEW, ALL_QUESTIONS, GLOSSARY, MODULES, PLANNED, coveredPoints
 import { Md } from '../../theory/Md'
 import type { Lesson, Module, Practice, Question } from '../../theory/types'
 import { Quiz } from './Quiz'
+import { LabView } from './LabView'
+import { LABS, labById } from '../../theory/labs'
 
-type Pane = { k: 'home' } | { k: 'lesson'; id: string } | { k: 'quiz'; id: string } | { k: 'exam'; m: string } | { k: 'final' } | { k: 'review' } | { k: 'interview' } | { k: 'glossary' }
+type Pane =
+  | { k: 'lab'; id: string }
+  | { k: 'home' }
+  | { k: 'lesson'; id: string }
+  | { k: 'quiz'; id: string }
+  | { k: 'exam'; m: string }
+  | { k: 'final' }
+  | { k: 'review' }
+  | { k: 'interview' }
+  | { k: 'glossary' }
 
 const SECTIONS: { key: 'base' | 'classic' | 'modern' | 'field'; ru: string; en: string; cls: string }[] = [
   { key: 'base', ru: 'База', en: 'Fundamentals', cls: 'bg-fox-navy text-white' },
@@ -56,6 +67,12 @@ export function TheoryView() {
           <NavBtn on={pane.k === 'final'} onClick={() => setPane({ k: 'final' })} icon={<Trophy size={13} />} testid="th-final">
             {T('Итоговый экзамен', 'Final exam')} {s.examBest.final !== undefined && <span className="text-gray-500">· {s.examBest.final}%</span>}
           </NavBtn>
+          <div className="pt-1 text-[11px] font-semibold text-fox-navy uppercase tracking-wide px-2">{T('Лабы HLBL (автопроверка)', 'HLBL labs (auto-graded)')}</div>
+          {LABS.map((l, i) => (
+            <NavBtn key={l.id} on={pane.k === 'lab' && pane.id === l.id} onClick={() => setPane({ k: 'lab', id: l.id })} icon={<FlaskConical size={13} />} testid={`th-lab-${l.id}`}>
+              {i + 1}. {l.title} {s.labBest[l.id] !== undefined && <span className={s.labBest[l.id] === 100 ? 'text-fox-ok' : 'text-gray-500'}>· {s.labBest[l.id]}%</span>}
+            </NavBtn>
+          ))}
         </div>
         {MODULES.map((m) => (
           <div key={m.id} className="border-t border-fox-edge/50">
@@ -112,6 +129,7 @@ export function TheoryView() {
         {pane.k === 'review' && <Review ids={due} />}
         {pane.k === 'interview' && <Interview />}
         {pane.k === 'glossary' && <Glossary />}
+        {pane.k === 'lab' && labById(pane.id) && <LabView key={pane.id} lab={labById(pane.id)!} />}
       </main>
     </div>
   )
@@ -229,7 +247,7 @@ function LessonView({ l, go }: { l: Lesson & { module: Module }; go: (p: Pane) =
           <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-fox-cyan text-white">{T('Практика в тренажёре', 'Practice in the simulator')}</div>
           <div className="p-3 flex flex-col gap-1.5">
             {l.practice.map((p, i) => (
-              <button key={i} className="btn justify-start !text-sm" onClick={() => practice(p)}>
+              <button key={i} className="btn justify-start !text-sm" onClick={() => (p.lab ? go({ k: 'lab', id: p.lab }) : practice(p))}>
                 <ChevronRight size={13} /> {tx(p.label, lang)}
               </button>
             ))}

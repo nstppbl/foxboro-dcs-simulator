@@ -207,6 +207,9 @@ ENDWHILE
 - «**Permissives** не выполнены, фаза не стартовала».
 `,
       practice: [
+        { label: 'Лаба 1: напишите фазу CHARGE_A (автопроверка на модели)', view: 'curriculum', lab: 'h1-charge' },
+        { label: 'Лаба 2: фаза DISCHARGE с тайм-аутом', view: 'curriculum', lab: 'h2-discharge' },
+        { label: 'Лаба 3: фаза HEAT с проверкой мешалки', view: 'curriculum', lab: 'h3-heat' },
         { label: 'Откройте R-401_SEQ, страница HLBL: запустите партию и следите за STMNO', view: 'control', scenario: 'batch' },
         { label: 'CIP: последовательность мойки на HLBL', view: 'control', scenario: 'cip' },
       ],

@@ -31,7 +31,12 @@ export class TankPlant extends Plant {
     this.ai('FT102', qout)
   }
   vars() {
-    return [V('Level', 'Уровень', this.h, 'm'), V('Inflow', 'Приток', this.qin, 'm³/h'), V('Outflow', 'Отток', this.h > 0.02 ? this.dist.OUTFLOW : 0, 'm³/h'), V('Overflow', 'Перелив', this.h >= 5.2 ? 'YES' : 'no')]
+    return [
+      V('Level', 'Уровень', this.h, 'm'),
+      V('Inflow', 'Приток', this.qin, 'm³/h'),
+      V('Outflow', 'Отток', this.h > 0.02 ? this.dist.OUTFLOW : 0, 'm³/h'),
+      V('Overflow', 'Перелив', this.h >= 5.2 ? 'YES' : 'no'),
+    ]
   }
 }
 
@@ -55,7 +60,7 @@ export class FlowPlant extends Plant {
     const x = this.ao('FV201') / 100
     const head = 8 * this.speed * this.speed // bar at zero flow
     // valve + line: q = Cv(x) * sqrt(dp); pump: dp = head - k q²
-    const cv = 45 * (Math.pow(30, x) - 1) / 29 // equal percentage
+    const cv = (45 * (Math.pow(30, x) - 1)) / 29 // equal percentage
     const k = 8 / (55 * 55)
     const r = this.dist.RESIST
     const qss = head > 0 ? Math.sqrt(head / (k + r / Math.max(1e-6, cv * cv))) : 0
@@ -81,7 +86,11 @@ export class HexPlant extends Plant {
     AI('FT304', 'HX3AI1', 4, 0, 1500, 'KG/H', 'Steam flow', 'Расход пара'),
     AO('TV301', 'HX3AO1', 1, 'Steam control valve', 'Регулирующий клапан пара'),
   ]
-  distDefs = [D('FLOW', 'Product flow', 'Расход продукта', 'm³/h', 2, 25, 0.5, 10), D('TIN', 'Product inlet temperature', 'Температура на входе', '°C', 5, 60, 1, 20), D('FOUL', 'Fouling (heat transfer loss)', 'Загрязнение (потеря теплопередачи)', '%', 0, 60, 5, 0)]
+  distDefs = [
+    D('FLOW', 'Product flow', 'Расход продукта', 'm³/h', 2, 25, 0.5, 10),
+    D('TIN', 'Product inlet temperature', 'Температура на входе', '°C', 5, 60, 1, 20),
+    D('FOUL', 'Fouling (heat transfer loss)', 'Загрязнение (потеря теплопередачи)', '%', 0, 60, 5, 0),
+  ]
   tShell = 20
   tOut = 20
   steam = 0
@@ -104,7 +113,12 @@ export class HexPlant extends Plant {
     this.ai('FT304', this.steam)
   }
   vars() {
-    return [V('Outlet temperature (true)', 'Температура на выходе (истинная)', this.tOut, '°C'), V('Shell temperature', 'Температура в межтрубном', this.tShell, '°C'), V('Steam flow', 'Расход пара', this.steam, 'kg/h'), V('Dead time + sensor lag', 'Запаздывание + инерция датчика', '6 s + 4 s')]
+    return [
+      V('Outlet temperature (true)', 'Температура на выходе (истинная)', this.tOut, '°C'),
+      V('Shell temperature', 'Температура в межтрубном', this.tShell, '°C'),
+      V('Steam flow', 'Расход пара', this.steam, 'kg/h'),
+      V('Dead time + sensor lag', 'Запаздывание + инерция датчика', '6 s + 4 s'),
+    ]
   }
 }
 
@@ -130,7 +144,11 @@ export class BatchReactorPlant extends Plant {
     DI('YS407', 'R4DI01', 1, 'Agitator running', 'Мешалка в работе'),
     DI('ZSO406', 'R4DI01', 2, 'Discharge valve open limit', 'Концевик «клапан выгрузки открыт»'),
   ]
-  distDefs = [D('TCW', 'Cooling water temperature', 'Температура охлаждающей воды', '°C', 5, 40, 1, 15), D('K', 'Reaction rate factor', 'Множитель скорости реакции', '×', 0.2, 4, 0.1, 1), D('CA', 'Feed A concentration', 'Концентрация A в подаче', 'mol/L', 0.5, 4, 0.1, 2)]
+  distDefs = [
+    D('TCW', 'Cooling water temperature', 'Температура охлаждающей воды', '°C', 5, 40, 1, 15),
+    D('K', 'Reaction rate factor', 'Множитель скорости реакции', '×', 0.2, 4, 0.1, 1),
+    D('CA', 'Feed A concentration', 'Концентрация A в подаче', 'mol/L', 0.5, 4, 0.1, 2),
+  ]
   vol = 0
   nA = 0
   nB = 0
@@ -143,6 +161,8 @@ export class BatchReactorPlant extends Plant {
   agit = 0
   valvePos = 0
   agitatorFault = false
+  /** discharge valve stuck closed (training fault) */
+  dischargeStuck = false
   rate = 0
   update(dt: number) {
     // feeds (L/min)
@@ -150,7 +170,7 @@ export class BatchReactorPlant extends Plant {
     this.qb = lag(this.qb, (90 * this.ao('FV405')) / 100, 1.5, dt)
     const run = this.dout('M407') && !this.agitatorFault
     this.agit = lag(this.agit, run ? 1 : 0, 1.5, dt)
-    this.valvePos = lag(this.valvePos, this.dout('XV406') ? 1 : 0, 2, dt)
+    this.valvePos = lag(this.valvePos, this.dout('XV406') && !this.dischargeStuck ? 1 : 0, 2, dt)
     const out = this.vol > 0.5 ? 150 * this.valvePos : 0
     this.qOut = out
     const dVa = (this.qa / 60) * dt
@@ -265,7 +285,12 @@ export class WfiPlant extends Plant {
     this.ai('FT504', 6)
   }
   vars() {
-    return [V('Tank level', 'Уровень в баке', this.lvl, '%'), V('Loop temperature', 'Температура контура', this.t, '°C'), V('Still production', 'Производительность дистиллятора', this.prod, 'm³/h'), V('Distillate to', 'Дистиллят идёт', this.dout('XV503') ? 'DRAIN' : 'TANK')]
+    return [
+      V('Tank level', 'Уровень в баке', this.lvl, '%'),
+      V('Loop temperature', 'Температура контура', this.t, '°C'),
+      V('Still production', 'Производительность дистиллятора', this.prod, 'm³/h'),
+      V('Distillate to', 'Дистиллят идёт', this.dout('XV503') ? 'DRAIN' : 'TANK'),
+    ]
   }
 }
 
@@ -316,7 +341,8 @@ export class CipPlant extends Plant {
     const q = pump ? (this.ao('TV602') / 100) * 90 : 0 // kW
     if (this.vol > 5) this.t += ((q - 0.15 * (this.t - 20)) / (this.vol * 4.18 + 60)) * dt
     // cleaning: soil removed faster with hot caustic and flow
-    if (pump && this.flow > 3) this.soil = Math.max(0, this.soil - (0.002 + 0.02 * Math.min(1, this.caustic / 15) * Math.max(0, (this.t - 40) / 35)) * (100 / Math.max(10, this.dist.SOIL + 10)) * dt * 10)
+    if (pump && this.flow > 3)
+      this.soil = Math.max(0, this.soil - (0.002 + 0.02 * Math.min(1, this.caustic / 15) * Math.max(0, (this.t - 40) / 35)) * (100 / Math.max(10, this.dist.SOIL + 10)) * dt * 10)
     const ms = 4.5 * this.caustic + 6 * this.acid + 0.05
     this.ai('LT601', this.vol)
     this.ai('TT602', this.t)
