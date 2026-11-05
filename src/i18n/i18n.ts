@@ -24,7 +24,7 @@ const UI = {
   nav_engineering: { en: 'Engineering (ICC / Control Editors)', ru: 'Инжиниринг (ICC / Control Editors)' },
   nav_operator: { en: 'Operator (FoxView / Control HMI)', ru: 'Оператор (FoxView / Control HMI)' },
   nav_faults: { en: 'Faults & System Manager', ru: 'Неисправности и System Manager' },
-  nav_curriculum: { en: 'Curriculum', ru: 'Курс обучения' },
+  nav_curriculum: { en: 'Theory & tests', ru: 'Теория и тесты' },
   soon: { en: 'next stage', ru: 'следующий этап' },
   era: { en: 'Era', ru: 'Поколение' },
   era_classic: { en: 'I/A Series', ru: 'I/A Series' },

@@ -59,3 +59,17 @@ body.help-mode [data-help]:hover {
   transform-box: fill-box;
   transform-origin: center;
 }
+
+/* lesson text (theory) */
+.md { line-height: 1.55; font-size: 14px; }
+.md h4 { @apply text-[15px] font-semibold text-fox-navy mt-4; }
+.md ul { @apply list-disc pl-5 space-y-1; }
+.md ol { @apply list-decimal pl-5 space-y-1; }
+.md code { @apply font-mono text-[12.5px] bg-fox-panel2 px-1 border border-fox-edge/30; }
+.md pre { @apply font-mono text-[12px] bg-[#1f252b] text-[#d8e2ea] p-2 overflow-x-auto; }
+.md table { @apply text-[13px] border border-fox-edge/60 border-collapse; }
+.md th { @apply bg-fox-panel2 text-left px-2 py-1 border border-fox-edge/40 font-semibold; }
+.md td { @apply px-2 py-1 border border-fox-edge/30 align-top; }
+.md-note { @apply border-l-4 border-fox-navy bg-blue-50 px-3 py-2; }
+.md-warn { @apply border-l-4 border-fox-alarm bg-red-50 px-3 py-2; }
+.md-tip { @apply border-l-4 border-fox-ok bg-green-50 px-3 py-2; }

@@ -49,12 +49,7 @@ export const SOFTWARE: { id: string; label: string; roles: StationRole[] | 'cont
 ]
 
 /** Packages a role needs at least. */
-export const REQUIRED: Record<StationRole, string[]> = {
-  EWS: ['CCS', 'CS', 'HMI', 'SYSMGR', 'SYSDEF'],
-  OWS: ['CCS', 'HMI', 'SYSMGR'],
-  AW: ['CCS'],
-  HIST: ['CCS', 'HIST'],
-}
+export const REQUIRED: Record<StationRole, string[]> = { EWS: ['CCS', 'CS', 'HMI', 'SYSMGR', 'SYSDEF'], OWS: ['CCS', 'HMI', 'SYSMGR'], AW: ['CCS'], HIST: ['CCS', 'HIST'] }
 
 export const ROLE_LABEL: Record<StationRole, Bilingual> = {
   EWS: { en: 'Engineering workstation', ru: 'Инженерная станция' },
@@ -104,22 +99,36 @@ export function checkSysDef(t: Topology, sd: SysDef): SdIssue[] {
 
   // letterbugs
   for (const n of t.nodes.filter(isMonitored))
-    if (!/^[A-Z0-9]{6}$/.test((n.letterbug ?? '').toUpperCase())) add('error', [n.id], `${typeOf(n).label} has no valid 6-character letterbug.`, `У ${typeOf(n).label} нет корректного letterbug из 6 символов.`)
+    if (!/^[A-Z0-9]{6}$/.test((n.letterbug ?? '').toUpperCase()))
+      add('error', [n.id], `${typeOf(n).label} has no valid 6-character letterbug.`, `У ${typeOf(n).label} нет корректного letterbug из 6 символов.`)
 
   // hosts
   const hostLoad = new Map<string, number>()
   for (const cp of cps) {
     const h = sd.hosts[cp.id]
     if (!h || !idx[h]) {
-      add('error', [cp.id], `${name(cp.id)}: no host workstation assigned (it keeps the checkpoint file and boot image).`, `${name(cp.id)}: не назначен host (на нём checkpoint-файл и образ загрузки).`)
+      add(
+        'error',
+        [cp.id],
+        `${name(cp.id)}: no host workstation assigned (it keeps the checkpoint file and boot image).`,
+        `${name(cp.id)}: не назначен host (на нём checkpoint-файл и образ загрузки).`,
+      )
       continue
     }
     hostLoad.set(h, (hostLoad.get(h) ?? 0) + 1)
     if (!isPc(idx[h])) add('error', [cp.id, h], `${name(cp.id)}: the host must be a workstation or server.`, `${name(cp.id)}: host должен быть рабочей станцией или сервером.`)
-    else if (!ethernetPath(t, new Set(), cp.id, h)) add('error', [cp.id, h], `${name(cp.id)} cannot reach its host ${name(h)} over the control network.`, `${name(cp.id)} не видит свой host ${name(h)} по сети управления.`)
-    else if (roleOf(sd, idx[h]) === 'OWS') add('warning', [cp.id, h], `${name(cp.id)} is hosted by an operator workstation; hosts are normally engineering workstations or servers.`, `${name(cp.id)} хостится операторской станцией; обычно host — инженерная станция или сервер.`)
+    else if (!ethernetPath(t, new Set(), cp.id, h))
+      add('error', [cp.id, h], `${name(cp.id)} cannot reach its host ${name(h)} over the control network.`, `${name(cp.id)} не видит свой host ${name(h)} по сети управления.`)
+    else if (roleOf(sd, idx[h]) === 'OWS')
+      add(
+        'warning',
+        [cp.id, h],
+        `${name(cp.id)} is hosted by an operator workstation; hosts are normally engineering workstations or servers.`,
+        `${name(cp.id)} хостится операторской станцией; обычно host — инженерная станция или сервер.`,
+      )
   }
-  for (const [h, n] of hostLoad) if (n > HOST_MAX_CP) add('warning', [h], `${name(h)} hosts ${n} controllers (recommended ≤ ${HOST_MAX_CP}).`, `${name(h)} хостит ${n} контроллеров (рекомендуется ≤ ${HOST_MAX_CP}).`)
+  for (const [h, n] of hostLoad)
+    if (n > HOST_MAX_CP) add('warning', [h], `${name(h)} hosts ${n} controllers (recommended ≤ ${HOST_MAX_CP}).`, `${name(h)} хостит ${n} контроллеров (рекомендуется ≤ ${HOST_MAX_CP}).`)
 
   // SMON domains
   if (!sd.smons.length) add('error', [], 'No System Monitor domain: station health would not be monitored.', 'Нет доменов System Monitor: состояние станций никто не контролирует.')
@@ -130,11 +139,20 @@ export function checkSysDef(t: Topology, sd: SysDef): SdIssue[] {
     if (seenName.has(sm.name)) add('error', [], `Duplicate SMON name ${sm.name}.`, `Повторяющееся имя SMON ${sm.name}.`)
     seenName.add(sm.name)
     if (!sm.host || !idx[sm.host]) add('error', [], `${sm.name}: no host workstation.`, `${sm.name}: не задана станция-host.`)
-    else if (roleOf(sd, idx[sm.host]) !== 'EWS') add('warning', [sm.host], `${sm.name} is hosted by ${name(sm.host)}; System Monitors normally run on an engineering workstation.`, `${sm.name} работает на ${name(sm.host)}; обычно System Monitor запускают на инженерной станции.`)
-    if (sm.members.length > SMON_MAX_STATIONS) add('error', [], `${sm.name} monitors ${sm.members.length} stations (max ${SMON_MAX_STATIONS}).`, `${sm.name} контролирует ${sm.members.length} станций (максимум ${SMON_MAX_STATIONS}).`)
+    else if (roleOf(sd, idx[sm.host]) !== 'EWS')
+      add(
+        'warning',
+        [sm.host],
+        `${sm.name} is hosted by ${name(sm.host)}; System Monitors normally run on an engineering workstation.`,
+        `${sm.name} работает на ${name(sm.host)}; обычно System Monitor запускают на инженерной станции.`,
+      )
+    if (sm.members.length > SMON_MAX_STATIONS)
+      add('error', [], `${sm.name} monitors ${sm.members.length} stations (max ${SMON_MAX_STATIONS}).`, `${sm.name} контролирует ${sm.members.length} станций (максимум ${SMON_MAX_STATIONS}).`)
     if (!sm.notify.length) add('warning', [], `${sm.name}: no notification workstation, so nobody sees its system alarms.`, `${sm.name}: нет станций уведомления, системные аварии никто не увидит.`)
     if (sm.notify.length > SMON_MAX_NOTIFY) add('error', [], `${sm.name}: at most ${SMON_MAX_NOTIFY} notification workstations.`, `${sm.name}: не больше ${SMON_MAX_NOTIFY} станций уведомления.`)
-    for (const w of sm.notify) if (idx[w] && familyOf(idx[w]) !== 'workstation') add('error', [w], `${sm.name}: ${name(w)} is not a workstation and cannot show alarms.`, `${sm.name}: ${name(w)} — не рабочая станция и не может показывать аварии.`)
+    for (const w of sm.notify)
+      if (idx[w] && familyOf(idx[w]) !== 'workstation')
+        add('error', [w], `${sm.name}: ${name(w)} is not a workstation and cannot show alarms.`, `${sm.name}: ${name(w)} — не рабочая станция и не может показывать аварии.`)
   }
   const domainOf = new Map<string, string[]>()
   for (const sm of sd.smons) for (const m of sm.members) domainOf.set(m, [...(domainOf.get(m) ?? []), sm.name])
@@ -146,7 +164,12 @@ export function checkSysDef(t: Topology, sd: SysDef): SdIssue[] {
   // cross monitoring: the SMON host should itself be watched by another SMON
   for (const sm of sd.smons)
     if (sm.host && sd.smons.length > 1 && (domainOf.get(sm.host) ?? []).every((d) => d === sm.name))
-      add('info', [sm.host], `${sm.name}: its host ${name(sm.host)} is only watched by itself; put it in another domain for cross monitoring.`, `${sm.name}: host ${name(sm.host)} контролирует сам себя; для перекрёстного контроля включите его в другой домен.`)
+      add(
+        'info',
+        [sm.host],
+        `${sm.name}: its host ${name(sm.host)} is only watched by itself; put it in another domain for cross monitoring.`,
+        `${sm.name}: host ${name(sm.host)} контролирует сам себя; для перекрёстного контроля включите его в другой домен.`,
+      )
 
   // software
   for (const p of pcs) {
@@ -190,7 +213,12 @@ export function commitReport(t: Topology, sd: SysDef, at: Date): string {
   L.push('SYSTEM MONITOR DOMAINS')
   for (const sm of sd.smons) {
     L.push(`${sm.name}  host ${lb(sm.host)}  stations ${sm.members.length}`)
-    L.push(`  monitors: ${sm.members.map((m) => lb(m)).sort().join(', ')}`)
+    L.push(
+      `  monitors: ${sm.members
+        .map((m) => lb(m))
+        .sort()
+        .join(', ')}`,
+    )
     L.push(`  notifies: ${sm.notify.map((m) => lb(m)).join(', ') || '-'}`)
   }
   L.push('')
@@ -219,7 +247,7 @@ export function autoSysDef(t: Topology, prev: SysDef = emptySysDef()): SysDef {
     let bestLen = Infinity
     for (const h of hostsPool) {
       const p = ethernetPath(t, new Set(), cp.id, h.id)
-      if (p && p.length < bestLen) (best = h), (bestLen = p.length)
+      if (p && p.length < bestLen) ((best = h), (bestLen = p.length))
     }
     sd.hosts[cp.id] = best.id
   }
@@ -230,7 +258,10 @@ export function autoSysDef(t: Topology, prev: SysDef = emptySysDef()): SysDef {
       name: 'SMON01',
       host: host.id,
       members: t.nodes.filter(isMonitored).map((n) => n.id),
-      notify: pcs.filter((p) => sd.roles[p.id] === 'OWS' || sd.roles[p.id] === 'EWS').slice(0, SMON_MAX_NOTIFY).map((p) => p.id),
+      notify: pcs
+        .filter((p) => sd.roles[p.id] === 'OWS' || sd.roles[p.id] === 'EWS')
+        .slice(0, SMON_MAX_NOTIFY)
+        .map((p) => p.id),
     })
   }
   return sd

@@ -4,17 +4,18 @@ import { ArchitectureBuilder } from './features/architecture/ArchitectureBuilder
 import { ControlView } from './features/control/ControlView'
 import { EngineeringView } from './features/engineering/EngineeringView'
 import { OperatorView } from './features/operator/OperatorView'
+import { TheoryView } from './features/theory/TheoryView'
 import { HelpControls, HelpDrawer } from './help/HelpUi'
 import { useNav, type View } from './store/nav'
 import { useLang, useT, type UiKey } from './i18n/i18n'
 
 const NAV: { id: View; key: UiKey; icon: typeof Network; ready: boolean }[] = [
+  { id: 'curriculum', key: 'nav_curriculum', icon: BookOpen, ready: true },
   { id: 'architecture', key: 'nav_architecture', icon: Network, ready: true },
   { id: 'control', key: 'nav_control', icon: Cpu, ready: true },
   { id: 'engineering', key: 'nav_engineering', icon: Workflow, ready: true },
   { id: 'operator', key: 'nav_operator', icon: Monitor, ready: true },
   { id: 'faults', key: 'nav_faults', icon: Wrench, ready: false },
-  { id: 'curriculum', key: 'nav_curriculum', icon: BookOpen, ready: false },
 ]
 
 export default function App() {
@@ -70,6 +71,8 @@ export default function App() {
             <EngineeringView />
           ) : view === 'operator' ? (
             <OperatorView />
+          ) : view === 'curriculum' ? (
+            <TheoryView />
           ) : (
             <div className="p-8 text-sm text-gray-800">{t('stageNote')}</div>
           )}
