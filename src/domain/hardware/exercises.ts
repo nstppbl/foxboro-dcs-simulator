@@ -386,15 +386,15 @@ export const EXERCISES: Exercise[] = [
         'Коды оборудования: FC = FCP280, FD = FDC280, EW = инженерная станция, OW = операторская, AW = прикладная станция, HS = сервер истории, SW = коммутатор PCN. Номера контроллеров 01…09, затем 0A…0Z. Пример: C203FC — третий FCP280 в зоне C2.',
       ),
       B(
-        'Build: area A2 (central control building) — 2 root switches A/B, 2 OWS, 1 EWS, 1 historian. Area C1 (field rack room) — 2 edge switches A/B, 2 FCP280, 1 FDC280 (for Modbus/OPC UA packages), 1 EWS that will host the controllers of C1. Each edge switch has uplinks to both root switches.',
-        'Постройте: зона A2 (центральное здание) — 2 root-коммутатора A/B, 2 OWS, 1 EWS, 1 сервер истории. Зона C1 (полевая аппаратная) — 2 edge-коммутатора A/B, 2 FCP280, 1 FDC280 (для пакетов Modbus/OPC UA), 1 EWS, которая будет хостом контроллеров C1. Каждый edge-коммутатор подключается к обоим root.',
+        'Build: area B5 (central control building) — 2 root switches A/B, 2 OWS, 1 EWS, 1 historian. Area D7 (field rack room) — 2 edge switches A/B, 2 FCP280, 1 FDC280 (for Modbus/OPC UA packages), 1 EWS that will host the controllers of D7. Each edge switch has uplinks to both root switches.',
+        'Постройте: зона B5 (центральное здание) — 2 root-коммутатора A/B, 2 OWS, 1 EWS, 1 сервер истории. Зона D7 (полевая аппаратная) — 2 edge-коммутатора A/B, 2 FCP280, 1 FDC280 (для пакетов Modbus/OPC UA), 1 EWS, которая будет хостом контроллеров D7. Каждый edge-коммутатор подключается к обоим root.',
       ),
     ],
     table: {
       head: ['Area', 'Building', 'Equipment'],
       rows: [
-        ['A2', 'Central control building', '2 × SW (root A/B), 2 × OW, 1 × EW, 1 × HS'],
-        ['C1', 'Field rack room 1', '2 × SW (edge A/B), 2 × FC, 1 × FD, 1 × EW'],
+        ['B5', 'Central control building', '2 × SW (root A/B), 2 × OW, 1 × EW, 1 × HS'],
+        ['D7', 'Field rack room 1', '2 × SW (edge A/B), 2 × FC, 1 × FD, 1 × EW'],
       ],
     },
     start: 'empty',
@@ -402,28 +402,28 @@ export const EXERCISES: Exercise[] = [
       { id: 'lb', text: B('All letterbugs follow the convention', 'Все letterbug по правилу'), w: 3, test: letterbugConvention },
       {
         id: 'a2',
-        text: B('Area A2: 2 OW, 1 EW, 1 HS, 2 root SW', 'Зона A2: 2 OW, 1 EW, 1 HS, 2 root SW'),
+        text: B('Area B5: 2 OW, 1 EW, 1 HS, 2 root SW', 'Зона B5: 2 OW, 1 EW, 1 HS, 2 root SW'),
         w: 2,
         test: (t) => {
-          const a = t.nodes.filter((n) => area(n) === 'A2')
+          const a = t.nodes.filter((n) => area(n) === 'B5')
           const c = (code: string) => a.filter((n) => lb(n).endsWith(code)).length
           const roots = a.filter((n) => familyOf(n) === 'switch' && n.role === 'root').length
           return c('OW') >= 2 && c('EW') >= 1 && c('HS') >= 1 && roots === 2
             ? ok()
-            : no(`A2 has OW ${c('OW')}, EW ${c('EW')}, HS ${c('HS')}, root SW ${roots}`, `В A2: OW ${c('OW')}, EW ${c('EW')}, HS ${c('HS')}, root SW ${roots}`)
+            : no(`B5 has OW ${c('OW')}, EW ${c('EW')}, HS ${c('HS')}, root SW ${roots}`, `В B5: OW ${c('OW')}, EW ${c('EW')}, HS ${c('HS')}, root SW ${roots}`)
         },
       },
       {
         id: 'c1',
-        text: B('Area C1: 2 FC, 1 FD, 1 EW, 2 edge SW', 'Зона C1: 2 FC, 1 FD, 1 EW, 2 edge SW'),
+        text: B('Area D7: 2 FC, 1 FD, 1 EW, 2 edge SW', 'Зона D7: 2 FC, 1 FD, 1 EW, 2 edge SW'),
         w: 2,
         test: (t) => {
-          const a = t.nodes.filter((n) => area(n) === 'C1')
+          const a = t.nodes.filter((n) => area(n) === 'D7')
           const c = (code: string) => a.filter((n) => lb(n).endsWith(code)).length
           const edges = a.filter((n) => familyOf(n) === 'switch' && n.role === 'edge').length
           return c('FC') >= 2 && c('FD') >= 1 && c('EW') >= 1 && edges === 2
             ? ok()
-            : no(`C1 has FC ${c('FC')}, FD ${c('FD')}, EW ${c('EW')}, edge SW ${edges}`, `В C1: FC ${c('FC')}, FD ${c('FD')}, EW ${c('EW')}, edge SW ${edges}`)
+            : no(`D7 has FC ${c('FC')}, FD ${c('FD')}, EW ${c('EW')}, edge SW ${edges}`, `В D7: FC ${c('FC')}, FD ${c('FD')}, EW ${c('EW')}, edge SW ${edges}`)
         },
       },
       {

@@ -115,21 +115,21 @@ describe('architecture exercises', () => {
 
   it('ex6: naming convention', () => {
     const b = build()
-    const rA = b.add('SW24', { side: 'A', role: 'root', letterbug: 'A201SW' })
-    const rB = b.add('SW24', { side: 'B', role: 'root', letterbug: 'A202SW' })
+    const rA = b.add('SW24', { side: 'A', role: 'root', letterbug: 'B501SW' })
+    const rB = b.add('SW24', { side: 'B', role: 'root', letterbug: 'B502SW' })
     b.wire(rA, rB)
-    for (const lbx of ['A201OW', 'A202OW', 'A201EW']) b.dual(b.add('H92', { letterbug: lbx }), rA, rB)
-    b.dual(b.add('H91', { letterbug: 'A201HS' }), rA, rB)
-    const eA = b.add('SW24', { side: 'A', role: 'edge', letterbug: 'C101SW' })
-    const eB = b.add('SW24', { side: 'B', role: 'edge', letterbug: 'C102SW' })
+    for (const lbx of ['B501OW', 'B502OW', 'B501EW']) b.dual(b.add('H92', { letterbug: lbx }), rA, rB)
+    b.dual(b.add('H91', { letterbug: 'B501HS' }), rA, rB)
+    const eA = b.add('SW24', { side: 'A', role: 'edge', letterbug: 'D701SW' })
+    const eB = b.add('SW24', { side: 'B', role: 'edge', letterbug: 'D702SW' })
     for (const e of [eA, eB]) (b.wire(e, rA), b.wire(e, rB))
-    for (const lbx of ['C101FC', 'C102FC']) b.dual(b.add('FCP280', { letterbug: lbx }), eA, eB)
-    b.dual(b.add('FDC280', { letterbug: 'C101FD' }), eA, eB)
-    b.dual(b.add('H92', { letterbug: 'C101EW' }), eA, eB)
+    for (const lbx of ['D701FC', 'D702FC']) b.dual(b.add('FCP280', { letterbug: lbx }), eA, eB)
+    b.dual(b.add('FDC280', { letterbug: 'D701FD' }), eA, eB)
+    b.dual(b.add('H92', { letterbug: 'D701EW' }), eA, eB)
     let g = pct('ex6-plant', b.t)
     expect(g.results.filter((r) => !r.res.ok).map((r) => [r.r.id, r.res.detail?.en])).toEqual([])
     // a wrong code is caught
-    b.t.nodes.find((n) => n.letterbug === 'C102FC')!.letterbug = 'C102CP'
+    b.t.nodes.find((n) => n.letterbug === 'D702FC')!.letterbug = 'D702CP'
     g = pct('ex6-plant', b.t)
     expect(g.results.find((r) => r.r.id === 'lb')!.res.ok).toBe(false)
   })
