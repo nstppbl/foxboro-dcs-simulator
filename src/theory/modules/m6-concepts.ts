@@ -19,8 +19,8 @@ export const M6: Module = {
 В одном compound могут быть блоки всех трёх **доменов управления**:
 | Домен | Блоки |
 |---|---|
-| Непрерывное (continuous) | AIN, AOUT, PID, PIDA, RATIO, CALC… |
-| Логика (ladder) | PLB, LOGIC, CIN, COUT… |
+| Непрерывное (continuous) | AIN, AOUT, PID, PIDA, RATIO, CALC, LOGIC, CIN, COUT… |
+| Логика (ladder) | PLB (ladder logic, выполняется в дискретном FBM) |
 | Последовательности (sequence) | DEP, IND, EXC, MON (на языке HLBL) |
 
 ### Типы данных параметров

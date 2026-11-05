@@ -87,7 +87,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'Checkpoint', def: 'Сохранённая копия базы CP на хосте (и во flash). Из неё CP загружается.', module: 'm2' },
   { term: 'BPC', def: 'Basic Processing Cycle — такт CP, по умолчанию 0,5 с.', module: 'm3' },
   { term: 'FT pair', def: 'Отказоустойчивая пара CP: два модуля выполняют одну программу, одна станция.', module: 'm3' },
-  { term: 'Self-hosting', def: 'CP хранит образ во flash и загружается без хоста.', module: 'm3' },
+  { term: 'Self-hosting', def: 'CP хранит checkpoint во flash и загружается без хоста (с V8.4; по умолчанию выключен).', module: 'm3' },
   { term: 'FBM', def: 'Fieldbus Module — модуль ввода-вывода 200-й серии.', module: 'm4' },
   { term: 'TA', def: 'Termination Assembly — клеммная сборка для полевых кабелей.', module: 'm4' },
   { term: 'ECB', def: 'Equipment Control Block — блок, представляющий FBM в CP.', module: 'm4' },
