@@ -90,6 +90,37 @@ describe('HLBL', () => {
     expect(compileHlbl('X := (1 + \n').error).toMatch(/line 1/)
   })
 
+  it('accepts the full HLBL program layout', () => {
+    const src = `INDEPENDENT_SEQUENCE
+{ multi-line
+  comment }
+CONSTANTS
+  TMAX = 3 ;
+VARIABLES
+  T, N : I ;
+USER_LABELS
+  LVL : TANK2_COMP:LT100.PNT ;
+STATEMENTS
+  <<LOOP>>
+  IF N >= TMAX THEN
+    GOTO DONE ;
+  ELSE_IF LVL > 1000 THEN
+    EXIT ;
+  ELSE
+    N := N + 1 ;
+  ENDIF ;
+  WAIT UNTIL ::TANK2_COMP:LT100.PNT >= 0 ;
+  GOTO LOOP ;
+  <<DONE>>
+  SENDMSG "DONE" ;
+ENDSEQUENCE`
+    const p = compileHlbl(src)
+    expect(p.error).toBeUndefined()
+    expect(p.code.length).toBeGreaterThan(5)
+    expect(compileHlbl('GOTO NOWHERE').error).toMatch(/NOWHERE/)
+    expect(compileHlbl('ELSE_IF X THEN').error).toMatch(/ELSE_IF/)
+  })
+
   it('runs the TANK2 fill sequence to completion', () => {
     const s = new ControlStation(tank2Db())
     s.set('PROCESS_2', 'MTR_CNTRL', 'MANRUN', false)

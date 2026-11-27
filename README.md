@@ -26,7 +26,7 @@ Progress and your topology are saved in the browser (localStorage).
 | 4 | Process models: tank, flow line, heat exchanger, batch reactor, WFI, CIP in HLBL | done |
 | 5 | Operator HMI: process graphics, group displays, Alarm Manager, horn; built-in help ("?", F1 help mode, Reference) | done |
 | 6 | Fault injection + System Manager (ch. 13) | next |
-| 7 | Curriculum: theory, guided labs, tests, scoring | planned |
+| 7 | Curriculum: three courses (I/A Series engineer, 2300v8 operator, HLBL), 6 auto-graded HLBL labs, tests, exams, interview mode | in progress |
 
 ## Architecture Builder features
 - Hardware palette: H92 workstation, H90/H91 servers, managed MESH switches, FCP270, ZCP270 with FCM100Et, FCP280, FDC280, FBM201-242, TAs and field instruments. You can filter by era (I/A Series or Foxboro DCS).
@@ -41,7 +41,7 @@ Progress and your topology are saved in the browser (localStorage).
 - Blocks: AIN, AOUT, DIN, DOUT, PID, PIDA, RATIO, CALC (RPN steps), CHARC, SWCH, LLAG, DTIME, MTR, HLBL.
 - PID: MODOPT P/I/PD/PI/PID, PBAND/INT/DERIV, INCOPT, A/M, L/R, bumpless transfer via BCALCI/BCALCO, HIABS/LOABS/HHABS/LLABS/HIDEV/LODEV/HIOUT/LOOUT alarms with deadband, priority, text, CRIT/PRTYPE/UNACK.
 - Alarm manager: Current Alarms (CAD) ordering, ACK by block/compound, INHIB and compound CINHIB, history and messages.
-- HLBL subset: `:=`, IF/ELSE/ENDIF, WHILE/ENDWHILE, WAIT, WAITUNTIL, SENDMSG, EXIT, C:B.P references, compile errors with line numbers.
+- HLBL subset: `:=`, IF/ELSE_IF/ELSE/ENDIF, WHILE/ENDWHILE, WAIT, WAIT UNTIL (or WAITUNTIL), SENDMSG, EXIT, `<<LABEL>>` and GOTO, C:B.P and ::C:B.P references, compile errors with line numbers. The full program layout is accepted too: INDEPENDENT_SEQUENCE / DEPENDENT_SEQUENCE / EXCEPTION_SEQUENCE … ENDSEQUENCE with CONSTANTS, VARIABLES, USER_LABELS, STATEMENTS and `{ comments }`.
 - Lab database from LAB 1: TANK2_COMP (LT100, LC100, LV100 with the lab's parameters and alarm texts), PROCESS_2 (MTR_CNTRL, DEAD_TM, FLOW_CALC, LAG_TM) and TANK2_SEQ:FILL (HLBL fill sequence).
 - Control screen: FoxSelect tree, Block Detail pages CNTRL / CONFIG / TUNE / ALARMS / TREND, faceplate (AUTO/MAN, LOCAL/REMOTE, ramp 1 %/5 %, ACK), compound ON/OFF and CINHIB, CAD and alarm history, run/pause/speed.
 

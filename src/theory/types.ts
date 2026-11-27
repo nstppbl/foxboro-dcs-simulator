@@ -57,9 +57,14 @@ export interface Lesson {
   interview?: InterviewQ[]
 }
 
+/** eng = I/A Series engineer course, ops = 2300v8 Process Operations, hlbl = HLBL course */
+export type CourseId = 'eng' | 'ops' | 'hlbl'
+
 export interface Module {
   id: string
   n: number
+  /** which course the module belongs to (default 'eng') */
+  course?: CourseId
   title: Tx
   goal: Tx
   lessons: Lesson[]

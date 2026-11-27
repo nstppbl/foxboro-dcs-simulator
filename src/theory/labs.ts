@@ -34,6 +34,8 @@ export interface LabCase {
   setup: string
   prepare: (plant: BatchReactorPlant, recipe: (k: string, v: number) => void) => void
   maxTime: number
+  /** called every second of the run (to inject a fault mid-phase) */
+  during?: (plant: BatchReactorPlant, t: number) => void
   checks: LabCheck[]
 }
 
@@ -65,12 +67,14 @@ export function runLab(code: string, c: LabCase): LabRun {
   st.run(2) // let inputs settle
   const h0 = st.alarms.history.length
   st.set('R401_SEQ', 'PHASES', 'ACTIVE', true)
-  const peak: Record<string, number> = { vol: plant.vol, fv404: 0, tv402: 0 }
+  const peak: Record<string, number> = { vol: plant.vol, fv404: 0, fv405: 0, tv402: 0 }
   let t = 0
   for (; t < c.maxTime; t++) {
+    c.during?.(plant, t)
     st.run(1)
     peak.vol = Math.max(peak.vol, plant.vol)
     peak.fv404 = Math.max(peak.fv404, n(st.block('REACTOR', 'FV404')?.p.OUT))
+    peak.fv405 = Math.max(peak.fv405, n(st.block('REACTOR', 'FV405')?.p.OUT))
     peak.tv402 = Math.max(peak.tv402, n(st.block('REACTOR', 'TV402')?.p.OUT))
     const s = String(st.block('R401_SEQ', 'PHASES')!.p.STATE)
     if (s === 'DONE' || s === 'ERROR' || (s === 'IDLE' && t > 0)) break
@@ -329,6 +333,293 @@ SENDMSG "HEAT COMPLETE"
             test: (r) => blk(r, 'REACTOR', 'TIC401', 'MA') === false && r.plant.tr < 25,
             why: (r) => `TIC401.MA = ${blk(r, 'REACTOR', 'TIC401', 'MA')}, TT401 = ${r.plant.tr.toFixed(1)} °C`,
           },
+          { text: 'Команда мешалки снята', test: (r) => blk(r, 'REACTOR', 'M407', 'IN') === false, why: () => 'M407.IN осталась TRUE' },
+          saidSomething,
+        ],
+      },
+    ],
+  },
+  {
+    id: 'h4-cool',
+    level: 2,
+    title: 'Фаза COOL: тайм-аут на аналоговом условии',
+    brief: `
+Напишите фазу охлаждения реактора после реакции. Пишите **в полном формате программы HLBL** (как в настоящем блоке): \`DEPENDENT_SEQUENCE\`, секции \`VARIABLES\`, \`USER_LABELS\`, \`STATEMENTS\`, \`ENDSEQUENCE\` (см. курс HLBL, модуль H1).
+
+**Требования:**
+1. Температура конца охлаждения — из рецепта: \`R401_SEQ:RECIPE.RI03\` (°C).
+2. Пустить мешалку \`REACTOR:M407.IN := TRUE\` (без перемешивания теплообмен с рубашкой плохой). Затем \`REACTOR:TIC401.SPT\` := эта температура, \`TIC401.MA := TRUE\` (каскад сам откроет воду в рубашку).
+3. Ждать \`REACTOR:TT401.PNT\` ≤ температура + 1, **но не дольше 900 с**.
+4. Если не успели — сообщить оператору «COOL TIMEOUT» и завершить фазу. TIC401 оставить в Auto: охлаждение продолжается, решение принимает оператор.
+5. Если успели — сообщение «COOL COMPLETE».
+
+Тест-кейсы: нормальное охлаждение 60 → 40 °C и **тёплая оборотная вода** (40 °C: до 41 °C за 900 с не остудить).
+`,
+    starter: `DEPENDENT_SEQUENCE
+{ COOL phase, R-401 }
+VARIABLES
+  TC : R ;
+  T  : I ;
+USER_LABELS
+  TEMP  : REACTOR:TT401.PNT ;
+  TCSPT : REACTOR:TIC401.SPT ;
+STATEMENTS
+  TC := R401_SEQ:RECIPE.RI03 ;
+  { ваш код }
+ENDSEQUENCE
+`,
+    solution: `DEPENDENT_SEQUENCE
+{ COOL phase, R-401 }
+CONSTANTS
+  TMAX = 900 ;
+VARIABLES
+  TC : R ;
+  T  : I ;
+USER_LABELS
+  TEMP  : REACTOR:TT401.PNT ;
+  TCSPT : REACTOR:TIC401.SPT ;
+  TCMA  : REACTOR:TIC401.MA ;
+STATEMENTS
+  TC := R401_SEQ:RECIPE.RI03 ;
+  SENDMSG "PHASE COOL" ;
+  REACTOR:M407.IN := TRUE ;
+  TCSPT := TC ;
+  TCMA := TRUE ;
+  T := 0 ;
+  WHILE TEMP > TC + 1 DO
+    IF T >= TMAX THEN
+      SENDMSG "COOL TIMEOUT" ;
+      EXIT ;
+    ENDIF ;
+    WAIT 1 ;
+    T := T + 1 ;
+  ENDWHILE ;
+  SENDMSG "COOL COMPLETE" ;
+ENDSEQUENCE
+`,
+    cases: [
+      {
+        id: 'normal',
+        title: 'Нормальное охлаждение 60 → 40 °C',
+        setup: 'В реакторе 400 л при 60 °C, оборотная вода 15 °C, рецепт RI03 = 40 °C.',
+        prepare: (pl, rec) => {
+          pl.vol = 400
+          pl.tr = 60
+          pl.tj = 60
+          rec('RI03', 40)
+        },
+        maxTime: 1000,
+        checks: [
+          finished,
+          { text: 'TT401 ≈ 41 °C или ниже', test: (r) => n(blk(r, 'REACTOR', 'TT401', 'PNT')) <= 41.8, why: (r) => `TT401 = ${n(blk(r, 'REACTOR', 'TT401', 'PNT')).toFixed(1)} °C` },
+          { text: 'Сообщение о завершении, без «TIMEOUT»', test: (r) => r.msgs.length > 0 && !r.msgs.some((m) => /TIMEOUT/i.test(m)), why: (r) => `сообщения: ${r.msgs.join(' | ') || 'нет'}` },
+        ],
+      },
+      {
+        id: 'warm-cw',
+        title: 'Тёплая оборотная вода (40 °C)',
+        setup: 'В реакторе 400 л при 60 °C, оборотная вода 40 °C, рецепт RI03 = 40 °C. За 900 с цель недостижима.',
+        prepare: (pl, rec) => {
+          pl.vol = 400
+          pl.tr = 60
+          pl.tj = 60
+          pl.dist.TCW = 40
+          rec('RI03', 40)
+        },
+        maxTime: 1100,
+        checks: [
+          { text: 'Фаза завершилась сама через ~900 с (не зависла)', test: (r) => ended(r) && r.t >= 850 && r.t <= 960, why: (r) => `STATE = ${r.state}, прошло ${r.t} с` },
+          { text: 'Оператору сообщено о тайм-ауте', test: (r) => r.msgs.some((m) => /TIMEOUT|ТАЙМ/i.test(m)), why: (r) => `сообщения: ${r.msgs.join(' | ') || 'нет'}` },
+          { text: 'TIC401 остался в Auto (охлаждение продолжается)', test: (r) => blk(r, 'REACTOR', 'TIC401', 'MA') === true, why: (r) => `TIC401.MA = ${blk(r, 'REACTOR', 'TIC401', 'MA')}` },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'h5-react',
+    level: 3,
+    title: 'Фаза REACT: выдержка с мониторингом (как MON → EXC)',
+    brief: `
+Напишите фазу выдержки при температуре реакции, которая **сама следит за аварийными условиями** во время выдержки. В настоящей системе это часто делают отдельным блоком **MON**, который запускает **EXC** (курс HLBL, модуль H3). Здесь — в одном блоке, циклом.
+
+**Требования:**
+1. Номер фазы для HMI: \`R401_SEQ:RECIPE.RO01 := 4\`.
+2. Мешалка должна работать: \`REACTOR:M407.IN := TRUE\`, ждать \`REACTOR:YS407.CIN\` не дольше 10 с (иначе сообщение и выход, нагрев не включать).
+3. \`REACTOR:TIC401.SPT\` := \`R401_SEQ:RECIPE.RI03\`, \`TIC401.MA := TRUE\`.
+4. Выдержка \`R401_SEQ:RECIPE.RI04\` секунд. **Каждую секунду** проверять:
+   - мешалка остановилась (\`NOT REACTOR:YS407.CIN\`) **или** \`TT401\` выше температуры рецепта на 10 °C и более →
+   - **удержание (hold)**: \`TIC401.SPT := 30\` (охлаждать), \`RO01 := 9\`, сообщение оператору, выход.
+5. Нормальное окончание: сообщение «REACT COMPLETE».
+
+Тест-кейсы: нормальная выдержка 120 с и **отказ мешалки на 40-й секунде**.
+`,
+    starter: `-- REACT
+R401_SEQ:RECIPE.RO01 := 4
+TR := R401_SEQ:RECIPE.RI03
+HOLDT := R401_SEQ:RECIPE.RI04
+`,
+    solution: `R401_SEQ:RECIPE.RO01 := 4
+TR := R401_SEQ:RECIPE.RI03
+HOLDT := R401_SEQ:RECIPE.RI04
+SENDMSG "PHASE REACT"
+REACTOR:M407.IN := TRUE
+T := 0
+WHILE NOT REACTOR:YS407.CIN DO
+  IF T >= 10 THEN
+    REACTOR:M407.IN := FALSE
+    SENDMSG "AGITATOR FAILED - REACT NOT STARTED"
+    EXIT
+  ENDIF
+  WAIT 1
+  T := T + 1
+ENDWHILE
+REACTOR:TIC401.SPT := TR
+REACTOR:TIC401.MA := TRUE
+T := 0
+WHILE T < HOLDT DO
+  IF NOT REACTOR:YS407.CIN OR REACTOR:TT401.PNT >= TR + 10 THEN
+    REACTOR:TIC401.SPT := 30
+    R401_SEQ:RECIPE.RO01 := 9
+    SENDMSG "R-401 HELD - AGITATOR STOPPED OR TEMP HIGH"
+    EXIT
+  ENDIF
+  WAIT 1
+  T := T + 1
+ENDWHILE
+SENDMSG "REACT COMPLETE"
+`,
+    cases: [
+      {
+        id: 'normal',
+        title: 'Нормальная выдержка 120 с при 80 °C',
+        setup: 'В реакторе 600 л при 80 °C, мешалка исправна, RI03 = 80 °C, RI04 = 120 с.',
+        prepare: (pl, rec) => {
+          pl.vol = 600
+          pl.tr = 80
+          pl.tj = 80
+          rec('RI03', 80)
+          rec('RI04', 120)
+        },
+        maxTime: 400,
+        checks: [
+          finished,
+          { text: 'Выдержка длилась не меньше 120 с', test: (r) => r.t >= 120, why: (r) => `фаза закончилась через ${r.t} с` },
+          { text: 'RO01 = 4 (фаза REACT), TIC401 в Auto с SPT 80', test: (r) => n(blk(r, 'R401_SEQ', 'RECIPE', 'RO01')) === 4 && blk(r, 'REACTOR', 'TIC401', 'MA') === true && Math.abs(n(blk(r, 'REACTOR', 'TIC401', 'SPT')) - 80) < 0.5, why: (r) => `RO01 = ${blk(r, 'R401_SEQ', 'RECIPE', 'RO01')}, MA = ${blk(r, 'REACTOR', 'TIC401', 'MA')}, SPT = ${blk(r, 'REACTOR', 'TIC401', 'SPT')}` },
+        ],
+      },
+      {
+        id: 'agitator-trip',
+        title: 'Мешалка отказала на 40-й секунде',
+        setup: 'Как в нормальном случае, но на 40-й секунде мешалка останавливается (YS407 пропадает).',
+        prepare: (pl, rec) => {
+          pl.vol = 600
+          pl.tr = 80
+          pl.tj = 80
+          rec('RI03', 80)
+          rec('RI04', 120)
+        },
+        during: (pl, t) => {
+          if (t === 40) pl.agitatorFault = true
+        },
+        maxTime: 400,
+        checks: [
+          { text: 'Фаза завершилась сразу после отказа (до 60 с), а не после выдержки', test: (r) => ended(r) && r.t <= 60, why: (r) => `STATE = ${r.state}, прошло ${r.t} с` },
+          { text: 'Удержание: TIC401.SPT ≤ 30, RO01 = 9', test: (r) => n(blk(r, 'REACTOR', 'TIC401', 'SPT')) <= 30 && n(blk(r, 'R401_SEQ', 'RECIPE', 'RO01')) === 9, why: (r) => `SPT = ${blk(r, 'REACTOR', 'TIC401', 'SPT')}, RO01 = ${blk(r, 'R401_SEQ', 'RECIPE', 'RO01')}` },
+          saidSomething,
+        ],
+      },
+    ],
+  },
+  {
+    id: 'h6-debug',
+    level: 3,
+    title: 'Отладка: найдите 3 ошибки в CHARGE_B',
+    brief: `
+Коллега написал фазу CHARGE_B, и на FAT она не прошла. Код уже в редакторе. **Найдите и исправьте три ошибки** (подсказки ниже, если нужны). Это типичная задача на собеседовании: «вот код фазы, что с ним не так?».
+
+**Что должна делать фаза (по FDS):**
+1. Объём B — \`R401_SEQ:RECIPE.RI02\` (л).
+2. Мешалка работает до подачи B: \`M407.IN := TRUE\`, \`YS407.CIN\` не дольше 10 с; если нет — снять команду, сообщить, **не подавать B**.
+3. Сбросить сумматор \`FQ405\` (\`BI01\` TRUE → 1 с → FALSE).
+4. Подача регулятором \`FIC405\`: SPT 40 л/мин, Auto, пока \`FQ405.RO01\` < объёма.
+5. В конце \`FIC405\` в Manual и **выход 0** (клапан FV405 закрыт).
+
+**Подсказки** (если застряли):
+- Что будет, если мешалка не запустится?
+- Сумматор считает, только когда BI01 = FALSE.
+- В Manual PID держит последний выход.
+
+Запустите тесты сначала с исходным кодом и посмотрите, какие проверки падают. Это и есть отладка по результатам теста.
+`,
+    starter: `-- CHARGE_B (has 3 bugs)
+VB := R401_SEQ:RECIPE.RI02
+SENDMSG "PHASE CHARGE_B"
+REACTOR:M407.IN := TRUE
+WAITUNTIL REACTOR:YS407.CIN
+REACTOR:FQ405.BI01 := TRUE
+WAIT 1
+REACTOR:FIC405.SPT := 40
+REACTOR:FIC405.MA := TRUE
+WAITUNTIL REACTOR:FQ405.RO01 >= VB
+REACTOR:FIC405.MA := FALSE
+SENDMSG "CHARGE_B COMPLETE"
+`,
+    solution: `VB := R401_SEQ:RECIPE.RI02
+SENDMSG "PHASE CHARGE_B"
+REACTOR:M407.IN := TRUE
+T := 0
+WHILE NOT REACTOR:YS407.CIN DO
+  IF T >= 10 THEN
+    REACTOR:M407.IN := FALSE
+    SENDMSG "AGITATOR FAILED - CHARGE_B NOT STARTED"
+    EXIT
+  ENDIF
+  WAIT 1
+  T := T + 1
+ENDWHILE
+REACTOR:FQ405.BI01 := TRUE
+WAIT 1
+REACTOR:FQ405.BI01 := FALSE
+REACTOR:FIC405.SPT := 40
+REACTOR:FIC405.MA := TRUE
+WAITUNTIL REACTOR:FQ405.RO01 >= VB
+REACTOR:FIC405.MA := FALSE
+REACTOR:FIC405.OUT := 0
+SENDMSG "CHARGE_B COMPLETE"
+`,
+    cases: [
+      {
+        id: 'normal',
+        title: 'Нормальная подача 200 л',
+        setup: 'В реакторе 300 л компонента A, мешалка исправна, RI02 = 200 л.',
+        prepare: (pl, rec) => {
+          pl.vol = 300
+          rec('RI02', 200)
+        },
+        maxTime: 600,
+        checks: [
+          finished,
+          { text: 'В реакторе 490–520 л', test: (r) => r.plant.vol >= 490 && r.plant.vol <= 520, why: (r) => `объём ${r.plant.vol.toFixed(0)} л` },
+          {
+            text: 'В конце FIC405 в Manual, клапан FV405 закрыт',
+            test: (r) => blk(r, 'REACTOR', 'FIC405', 'MA') === false && n(blk(r, 'REACTOR', 'FV405', 'OUT')) < 1,
+            why: (r) => `FIC405.MA = ${blk(r, 'REACTOR', 'FIC405', 'MA')}, FV405.OUT = ${n(blk(r, 'REACTOR', 'FV405', 'OUT')).toFixed(1)} %`,
+          },
+        ],
+      },
+      {
+        id: 'agitator',
+        title: 'Мешалка не запускается',
+        setup: 'В реакторе 300 л, мешалка в отказе, RI02 = 200 л.',
+        prepare: (pl, rec) => {
+          pl.vol = 300
+          pl.agitatorFault = true
+          rec('RI02', 200)
+        },
+        maxTime: 120,
+        checks: [
+          { text: 'Фаза завершилась сама не позже чем через ~15 с', test: (r) => ended(r) && r.t <= 20, why: (r) => `STATE = ${r.state}, прошло ${r.t} с` },
+          { text: 'Подача B не открывалась', test: (r) => r.peak.fv405 < 1, why: (r) => `макс. FV405 ${r.peak.fv405.toFixed(0)} %` },
           { text: 'Команда мешалки снята', test: (r) => blk(r, 'REACTOR', 'M407', 'IN') === false, why: () => 'M407.IN осталась TRUE' },
           saidSomething,
         ],
