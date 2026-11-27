@@ -16,6 +16,11 @@ import { ALARM_OUT, COMMON, P, bool, num } from './common'
  *   SENDMSG "text"                  message to the operator journal
  *   EXIT                            end the program
  *
+ * Full-program layout is accepted too (as in Foxboro HLBL, B0400DF):
+ *   INDEPENDENT_SEQUENCE / DEPENDENT_SEQUENCE / EXCEPTION_SEQUENCE … ENDSEQUENCE,
+ *   CONSTANTS (NAME = value), VARIABLES (NAME : R), USER_LABELS (NAME : C:B.P), STATEMENTS,
+ *   { comments }, WAIT UNTIL cond, ELSE_IF, <<LABEL>> and GOTO LABEL, ::C:B.P references.
+ *
  * Expressions: numbers, TRUE/FALSE, "strings", variables, :B.P / C:B.P references,
  *   + - * /, = <> < > <= >=, AND OR NOT, parentheses.
  */
@@ -128,33 +133,105 @@ function parseExpr(toks: string[]): Expr {
   return e
 }
 
+const SEQ_HEADERS = ['INDEPENDENT_SEQUENCE', 'DEPENDENT_SEQUENCE', 'EXCEPTION_SEQUENCE', 'MONITOR_SEQUENCE', 'ENDSEQUENCE']
+const SECTIONS = ['CONSTANTS', 'VARIABLES', 'USER_LABELS', 'STATEMENTS']
+const KEYWORDS = new Set(['IF', 'THEN', 'ELSE', 'ELSE_IF', 'ENDIF', 'WHILE', 'DO', 'ENDWHILE', 'WAIT', 'UNTIL', 'WAITUNTIL', 'SENDMSG', 'EXIT', 'GOTO', 'AND', 'OR', 'NOT', 'TRUE', 'FALSE'])
+
+/** Remove { … } comments (they may span lines), keeping line numbers. */
+function stripBraces(src: string): string {
+  let out = ''
+  let depth = 0
+  let inStr = false
+  for (const ch of src) {
+    if (ch === '"' && depth === 0) inStr = !inStr
+    if (!inStr && ch === '{') depth++
+    if (depth === 0 || ch === '\n') out += ch
+    if (!inStr && ch === '}' && depth > 0) depth--
+  }
+  return out
+}
+
 export function compileHlbl(src: string): Program {
   const code: Instr[] = []
-  const stack: { kind: 'IF' | 'WHILE'; jf: number; start?: number; jmp?: number }[] = []
-  const lines = src.split(/\r?\n/)
+  type Frame = { kind: 'IF'; jf?: number; ends: number[]; hasElse: boolean } | { kind: 'WHILE'; jf: number; start: number }
+  const stack: Frame[] = []
+  const labels: Record<string, number> = {}
+  const gotos: { at: number; label: string; line: number }[] = []
+  const aliases: Record<string, string> = {}
+  let section: string | undefined
+  const lines = stripBraces(src).replace(/::(?=[A-Za-z_])/g, '').split(/\r?\n/)
   try {
     lines.forEach((raw, idx) => {
       const line = idx + 1
-      const toks = tokenize(raw)
-      if (!toks.length) return
-      const kw = toks[0].toUpperCase()
       try {
-        if (kw === 'IF') {
+        const bare = raw.replace(/--.*$/, '').trim().replace(/;\s*$/, '').trim()
+        const up = bare.toUpperCase()
+        if (!bare) return
+        if (SEQ_HEADERS.includes(up)) return
+        if (SECTIONS.includes(up)) {
+          section = up
+          return
+        }
+        // declarations (full HLBL program layout)
+        if (section === 'CONSTANTS') {
+          const m = /^([A-Za-z_]\w*)\s*=\s*(.+)$/.exec(bare)
+          if (!m) throw new Error('constant: NAME = value expected')
+          code.push({ op: 'set', target: { var: m[1].toUpperCase() }, e: parseExpr(tokenize(m[2])), line })
+          return
+        }
+        if (section === 'VARIABLES') {
+          const m = /^([A-Za-z_][\w ,]*)\s*:\s*([A-Za-z]+)(\s*\[\s*\d+\s*\])?\s*(:=\s*(.+))?$/.exec(bare)
+          if (!m) throw new Error('variable: NAME : TYPE expected')
+          const init = m[5] ? parseExpr(tokenize(m[5])) : { k: 'num' as const, v: 0 }
+          for (const n of m[1].split(',')) code.push({ op: 'set', target: { var: n.trim().toUpperCase() }, e: init, line })
+          return
+        }
+        if (section === 'USER_LABELS') {
+          const m = /^([A-Za-z_]\w*)\s*:\s*([A-Za-z0-9_]*:[A-Za-z0-9_]+\.[A-Za-z0-9_]+)$/.exec(bare)
+          if (!m) throw new Error('user label: NAME : COMPOUND:BLOCK.PARAM expected')
+          aliases[m[1].toUpperCase()] = m[2].toUpperCase()
+          return
+        }
+        const lab = /^<<\s*([A-Za-z_]\w*)\s*>>$/.exec(bare)
+        if (lab) {
+          labels[lab[1].toUpperCase()] = code.length
+          return
+        }
+        let toks = tokenize(raw)
+        if (!toks.length) return
+        toks = toks.map((t) => aliases[t.toUpperCase()] ?? t)
+        let kw = toks[0].toUpperCase()
+        if (kw === 'WAIT' && toks[1]?.toUpperCase() === 'UNTIL') {
+          kw = 'WAITUNTIL'
+          toks = toks.slice(1)
+        }
+        const top = stack[stack.length - 1]
+        if (kw === 'IF' || kw === 'ELSE_IF') {
           const th = toks.findIndex((t) => t.toUpperCase() === 'THEN')
           if (th < 0) throw new Error('THEN expected')
-          code.push({ op: 'jf', e: parseExpr(toks.slice(1, th)), to: -1, line })
-          stack.push({ kind: 'IF', jf: code.length - 1 })
+          if (kw === 'ELSE_IF') {
+            if (!top || top.kind !== 'IF' || top.hasElse) throw new Error('ELSE_IF without IF')
+            code.push({ op: 'jmp', to: -1, line })
+            top.ends.push(code.length - 1)
+            ;(code[top.jf!] as { to: number }).to = code.length
+            code.push({ op: 'jf', e: parseExpr(toks.slice(1, th)), to: -1, line })
+            top.jf = code.length - 1
+          } else {
+            code.push({ op: 'jf', e: parseExpr(toks.slice(1, th)), to: -1, line })
+            stack.push({ kind: 'IF', jf: code.length - 1, ends: [], hasElse: false })
+          }
         } else if (kw === 'ELSE') {
-          const top = stack[stack.length - 1]
-          if (!top || top.kind !== 'IF') throw new Error('ELSE without IF')
+          if (!top || top.kind !== 'IF' || top.hasElse) throw new Error('ELSE without IF')
           code.push({ op: 'jmp', to: -1, line })
-          top.jmp = code.length - 1
-          ;(code[top.jf] as { to: number }).to = code.length
+          top.ends.push(code.length - 1)
+          ;(code[top.jf!] as { to: number }).to = code.length
+          top.jf = undefined
+          top.hasElse = true
         } else if (kw === 'ENDIF') {
-          const top = stack.pop()
-          if (!top || top.kind !== 'IF') throw new Error('ENDIF without IF')
-          if (top.jmp !== undefined) (code[top.jmp] as { to: number }).to = code.length
-          else (code[top.jf] as { to: number }).to = code.length
+          const f = stack.pop()
+          if (!f || f.kind !== 'IF') throw new Error('ENDIF without IF')
+          if (f.jf !== undefined) (code[f.jf] as { to: number }).to = code.length
+          for (const j of f.ends) (code[j] as { to: number }).to = code.length
         } else if (kw === 'WHILE') {
           const d = toks.findIndex((t) => t.toUpperCase() === 'DO')
           if (d < 0) throw new Error('DO expected')
@@ -162,16 +239,21 @@ export function compileHlbl(src: string): Program {
           code.push({ op: 'jf', e: parseExpr(toks.slice(1, d)), to: -1, line })
           stack.push({ kind: 'WHILE', jf: code.length - 1, start })
         } else if (kw === 'ENDWHILE') {
-          const top = stack.pop()
-          if (!top || top.kind !== 'WHILE') throw new Error('ENDWHILE without WHILE')
-          code.push({ op: 'jmp', to: top.start!, line })
-          ;(code[top.jf] as { to: number }).to = code.length
+          const f = stack.pop()
+          if (!f || f.kind !== 'WHILE') throw new Error('ENDWHILE without WHILE')
+          code.push({ op: 'jmp', to: f.start, line })
+          ;(code[f.jf] as { to: number }).to = code.length
+        } else if (kw === 'GOTO') {
+          if (!toks[1]) throw new Error('label expected')
+          code.push({ op: 'jmp', to: -1, line })
+          gotos.push({ at: code.length - 1, label: toks[1].toUpperCase(), line })
         } else if (kw === 'WAIT') code.push({ op: 'wait', e: parseExpr(toks.slice(1)), line })
         else if (kw === 'WAITUNTIL') code.push({ op: 'until', e: parseExpr(toks.slice(1)), line })
         else if (kw === 'SENDMSG') code.push({ op: 'msg', e: parseExpr(toks.slice(1)), line })
         else if (kw === 'EXIT') code.push({ op: 'exit', line })
         else if (toks[1] === ':=') {
           const t = toks[0]
+          if (!t.includes(':') && KEYWORDS.has(t.toUpperCase())) throw new Error(`"${t}" is a keyword`)
           const target = t.includes(':') ? { ref: t.toUpperCase() } : { var: t.toUpperCase() }
           code.push({ op: 'set', target, e: parseExpr(toks.slice(2)), line })
         } else throw new Error(`unknown statement "${toks[0]}"`)
@@ -180,6 +262,10 @@ export function compileHlbl(src: string): Program {
       }
     })
     if (stack.length) throw new Error(`missing ${stack[stack.length - 1].kind === 'IF' ? 'ENDIF' : 'ENDWHILE'}`)
+    for (const g of gotos) {
+      if (!(g.label in labels)) throw new Error(`line ${g.line}: label <<${g.label}>> not found`)
+      ;(code[g.at] as { to: number }).to = labels[g.label]
+    }
   } catch (e) {
     return { code: [], error: (e as Error).message }
   }

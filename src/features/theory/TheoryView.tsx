@@ -5,9 +5,9 @@ import { useEng } from '../../store/engineering'
 import { useNav } from '../../store/nav'
 import { dueIds, useTheory } from '../../store/theory'
 import { useTopology } from '../../store/topology'
-import { ALL_INTERVIEW, ALL_QUESTIONS, GLOSSARY, MODULES, PLANNED, coveredPoints, lessonById, questionById, ruOnly, shuffle, tx } from '../../theory'
+import { ALL_INTERVIEW, ALL_QUESTIONS, COURSES, GLOSSARY, MODULES, PLANNED, courseOf, moduleNo, coveredPoints, lessonById, questionById, ruOnly, shuffle, tx } from '../../theory'
 import { Md } from '../../theory/Md'
-import type { Lesson, Module, Practice, Question } from '../../theory/types'
+import type { CourseId, Lesson, Module, Practice, Question } from '../../theory/types'
 import { Quiz } from './Quiz'
 import { LabView } from './LabView'
 import { LABS, labById } from '../../theory/labs'
@@ -35,9 +35,18 @@ export function TheoryView() {
   const T = (ru: string, en: string) => (lang === 'ru' ? ru : en)
   const s = useTheory()
   const [pane, setPaneRaw] = useState<Pane>(() => (s.lesson && lessonById(s.lesson) ? { k: 'lesson', id: s.lesson } : { k: 'home' }))
+  const [course, setCourse] = useState<CourseId>(() => {
+    const l = s.lesson ? lessonById(s.lesson) : undefined
+    return l ? courseOf(l.module) : 'eng'
+  })
   const setPane = (p: Pane) => {
     setPaneRaw(p)
-    if (p.k === 'lesson') s.open(p.id)
+    if (p.k === 'lesson') {
+      s.open(p.id)
+      const l = lessonById(p.id)
+      if (l) setCourse(courseOf(l.module))
+    }
+    if (p.k === 'lab') setCourse('hlbl')
     document.getElementById('theory-main')?.scrollTo(0, 0)
   }
   const due = dueIds(s.srs)
@@ -67,17 +76,35 @@ export function TheoryView() {
           <NavBtn on={pane.k === 'final'} onClick={() => setPane({ k: 'final' })} icon={<Trophy size={13} />} testid="th-final">
             {T('Итоговый экзамен', 'Final exam')} {s.examBest.final !== undefined && <span className="text-gray-500">· {s.examBest.final}%</span>}
           </NavBtn>
-          <div className="pt-1 text-[11px] font-semibold text-fox-navy uppercase tracking-wide px-2">{T('Лабы HLBL (автопроверка)', 'HLBL labs (auto-graded)')}</div>
-          {LABS.map((l, i) => (
+        </div>
+        <div className="px-2 pt-1 pb-2 grid grid-cols-3 gap-1 text-[11px]" role="tablist">
+          {COURSES.map((c) => (
+            <button
+              key={c.id}
+              role="tab"
+              aria-selected={course === c.id}
+              onClick={() => setCourse(c.id)}
+              title={tx(c.desc, lang)}
+              className={`px-1 py-1 border leading-tight ${course === c.id ? 'bg-fox-navy text-white border-fox-navy' : 'bg-white border-fox-edge hover:bg-gray-50'}`}
+              data-testid={`th-course-${c.id}`}
+            >
+              {c.id === 'eng' ? T('Инженер', 'Engineer') : c.id === 'ops' ? T('Оператор 2300', 'Operator 2300') : 'HLBL'}
+            </button>
+          ))}
+        </div>
+        <div className="px-2 pb-2 text-[11px] text-gray-600">{tx(COURSES.find((c) => c.id === course)!.desc, lang)}</div>
+        <div className="p-2 pt-0 space-y-1 text-xs">
+          {course === 'hlbl' && <div className="pt-1 text-[11px] font-semibold text-fox-navy uppercase tracking-wide px-2">{T('Лабы HLBL (автопроверка)', 'HLBL labs (auto-graded)')}</div>}
+          {course === 'hlbl' && LABS.map((l, i) => (
             <NavBtn key={l.id} on={pane.k === 'lab' && pane.id === l.id} onClick={() => setPane({ k: 'lab', id: l.id })} icon={<FlaskConical size={13} />} testid={`th-lab-${l.id}`}>
               {i + 1}. {l.title} {s.labBest[l.id] !== undefined && <span className={s.labBest[l.id] === 100 ? 'text-fox-ok' : 'text-gray-500'}>· {s.labBest[l.id]}%</span>}
             </NavBtn>
           ))}
         </div>
-        {MODULES.map((m) => (
+        {MODULES.filter((m) => courseOf(m) === course).map((m) => (
           <div key={m.id} className="border-t border-fox-edge/50">
             <div className="px-2 pt-2 text-[11px] font-semibold text-fox-navy uppercase tracking-wide">
-              {m.n}. {tx(m.title, lang)}
+              {moduleNo(m)}. {tx(m.title, lang)}
             </div>
             <div className="p-1 space-y-0.5">
               {m.lessons.map((l) => (
@@ -103,14 +130,14 @@ export function TheoryView() {
             </div>
           </div>
         ))}
-        <div className="border-t border-fox-edge/50 p-2 text-[11px] text-gray-600">
+        {course === 'eng' && <div className="border-t border-fox-edge/50 p-2 text-[11px] text-gray-600">
           <div className="font-semibold uppercase tracking-wide mb-1">{T('Готовятся', 'Coming next')}</div>
           {PLANNED.map((p) => (
             <div key={p.n}>
               {p.n}. {p.title}
             </div>
           ))}
-        </div>
+        </div>}
       </aside>
 
       <main id="theory-main" className="flex-1 min-w-0 overflow-y-auto p-4 lg:p-6">
@@ -167,6 +194,20 @@ function Home({ lessonsRead, lessonsTotal, due, go }: { lessonsRead: number; les
         )}
       />
       <div className="grid sm:grid-cols-3 gap-2 text-sm">
+        {COURSES.map((c) => {
+          const ls = MODULES.filter((m) => courseOf(m) === c.id).flatMap((m) => m.lessons)
+          return (
+            <div key={c.id} className="panel p-2">
+              <div className="font-semibold text-fox-navy">{tx(c.title, lang)}</div>
+              <div className="text-[11px] text-gray-600 mt-0.5">{tx(c.desc, lang)}</div>
+              <div className="text-xs font-mono mt-1">
+                {ls.filter((l) => s.read[l.id]).length} / {ls.length} {T('уроков', 'lessons')}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <div className="grid sm:grid-cols-3 gap-2 text-sm">
         <Stat label={T('Уроков пройдено', 'Lessons read')} value={`${lessonsRead} / ${lessonsTotal}`} />
         <Stat label={T('Экзаменов сдано (≥80 %)', 'Exams passed (≥80%)')} value={`${MODULES.filter((m) => (s.examBest[m.id] ?? 0) >= 80).length} / ${MODULES.length}`} />
         <Stat label={T('На повторение сегодня', 'Due for review')} value={String(due)} />
@@ -186,8 +227,8 @@ function Home({ lessonsRead, lessonsTotal, due, go }: { lessonsRead: number; les
       </div>
       <div className="text-xs text-gray-600">
         {T(
-          'Источники: курс 2001V8 «I/A Series Configuration Essentials» (V8.x) и открытые описания EcoStruxure Foxboro DCS. Места, где детали зависят от версии, помечены «смотрите руководство».',
-          'Sources: course 2001V8 (I/A Series V8.x) and public EcoStruxure Foxboro DCS descriptions.',
+          'Источники: курс 2001V8 «I/A Series Configuration Essentials» (V8.x), курс 2300v8 «Foxboro Process Operations» (модули 1–7), обзоры Foxboro DCS Hardware и Software, HLBL User\'s Guide (B0400DF) и открытые описания EcoStruxure Foxboro DCS. Места, где детали зависят от версии, помечены «смотрите руководство».',
+          'Sources: course 2001V8 (I/A Series V8.x), course 2300v8 Foxboro Process Operations (modules 1–7), Foxboro DCS Hardware and Software overviews, the HLBL User\'s Guide (B0400DF) and public EcoStruxure Foxboro DCS descriptions.',
         )}
       </div>
     </div>
@@ -226,7 +267,7 @@ function LessonView({ l, go }: { l: Lesson & { module: Module }; go: (p: Pane) =
     <article className="max-w-3xl space-y-4" data-testid="lesson">
       <div>
         <div className="text-xs text-gray-600">
-          {T('Модуль', 'Module')} {l.module.n} · {tx(l.module.title, lang)} · ~{l.minutes} {T('мин', 'min')}
+          {T('Модуль', 'Module')} {moduleNo(l.module)} · {tx(l.module.title, lang)} · ~{l.minutes} {T('мин', 'min')}
         </div>
         <h2 className="text-xl font-semibold text-fox-navy">{tx(l.title, lang)}</h2>
         {l.module.lessons[0].id === l.id && <p className="text-sm text-gray-700 mt-1 italic">{tx(l.module.goal, lang)}</p>}
@@ -294,7 +335,7 @@ function Exam({ m }: { m: Module }) {
     <div className="space-y-3">
       <h2 className="text-lg font-semibold text-fox-navy">
         {lang === 'ru' ? 'Экзамен: ' : 'Exam: '}
-        {m.n}. {tx(m.title, lang)}
+        {moduleNo(m)}. {tx(m.title, lang)}
       </h2>
       <p className="text-xs text-gray-600">{lang === 'ru' ? `Все вопросы модуля в случайном порядке. Зачёт — 80 %.` : 'All module questions in random order. Pass mark 80%.'}</p>
       <Quiz title={tx(m.title, lang)} questions={qs} shuffleQ onDone={(p) => done(m.id, p, 'exam')} />
@@ -375,7 +416,7 @@ function Interview() {
           ←
         </button>
         <span>
-          {i + 1} / {ALL_INTERVIEW.length} · {T('модуль', 'module')} {q.module.n}
+          {i + 1} / {ALL_INTERVIEW.length} · {T('модуль', 'module')} {moduleNo(q.module)}
         </span>
         <button className="btn" onClick={() => goTo(i + 1)}>
           →

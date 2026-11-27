@@ -7,18 +7,60 @@ import { M6 } from './modules/m6-concepts'
 import { M7 } from './modules/m7-blocks'
 import { M8 } from './modules/m8-hlbl'
 import { M9 } from './modules/m9-testing'
-import type { GlossaryEntry, Lesson, Module, Question, Tx } from './types'
+import { O1 } from './ops/o1-hardware'
+import { O2 } from './ops/o2-software'
+import { O3 } from './ops/o3-workstation'
+import { O4 } from './ops/o4-alarms'
+import { O5 } from './ops/o5-control'
+import { O6 } from './ops/o6-trends'
+import { O7 } from './ops/o7-reports'
+import { O8 } from './ops/o8-failures'
+import { H1 } from './hlbl/h1-structure'
+import { H2 } from './hlbl/h2-statements'
+import { H3 } from './hlbl/h3-blocks'
+import { H4 } from './hlbl/h4-phases'
+import { H5 } from './hlbl/h5-testing'
+import type { CourseId, GlossaryEntry, Lesson, Module, Question, Tx } from './types'
 
-export const MODULES: Module[] = [M1, M2, M3, M4, M5, M6, M7, M8, M9]
+export const MODULES: Module[] = [M1, M2, M3, M4, M5, M6, M7, M8, M9, O1, O2, O3, O4, O5, O6, O7, O8, H1, H2, H3, H4, H5]
+
+export const COURSES: { id: CourseId; prefix: string; title: Tx; desc: Tx }[] = [
+  {
+    id: 'eng',
+    prefix: '',
+    title: { ru: 'Инженер I/A Series', en: 'I/A Series engineer' },
+    desc: { ru: 'Архитектура, CP, I/O, имена, блоки, конфигурирование, HLBL-обзор, тестирование и GMP (курс 2001V8).', en: 'Architecture, CPs, I/O, naming, blocks, configuration, HLBL overview, testing and GMP (course 2001V8).' },
+  },
+  {
+    id: 'ops',
+    prefix: 'O',
+    title: { ru: 'Оператор: 2300v8 Process Operations', en: 'Operator: 2300v8 Process Operations' },
+    desc: {
+      ru: 'Курс оператора по презентациям 2300v8 + обзоры Hardware и Software: FoxView, тревоги, faceplates, тренды, FoxSelect и отчёты, System Manager и отказы.',
+      en: 'Operator course from the 2300v8 decks plus Hardware and Software overviews: FoxView, alarms, faceplates, trends, FoxSelect and reports, System Manager and failures.',
+    },
+  },
+  {
+    id: 'hlbl',
+    prefix: 'H',
+    title: { ru: 'HLBL — языки последовательностей', en: 'HLBL — sequence programming' },
+    desc: {
+      ru: 'Отдельный курс HLBL: структура программы, операторы, блоки IND/DEP/EXC/MON/TIM, batch-фазы ISA-88, отладка и тестирование, 6 лаб с автопроверкой на реакторе R-401.',
+      en: 'Dedicated HLBL course: program layout, statements, IND/DEP/EXC/MON/TIM blocks, ISA-88 phases, debugging and testing, 6 auto-graded labs on reactor R-401.',
+    },
+  },
+]
+export const courseOf = (m: Module): CourseId => m.course ?? 'eng'
+/** module label as shown in the UI: 7, O3, H2 */
+export const moduleNo = (m: Module) => `${COURSES.find((c) => c.id === courseOf(m))!.prefix}${m.n}`
 
 /** Modules in the programme that are not written yet. */
 export const PLANNED: { n: number; title: string }[] = [
   { n: 10, title: 'I/A-конфигурирование глубоко: IACC/ICC, Download, Compare/Upload, Checkpoint' },
   { n: 11, title: 'P&ID и control narrative → конфигурация; как писать FDS и DDS' },
   { n: 12, title: 'Состояния блоков: Hold/Track, OOS, BAD, статусы' },
-  { n: 13, title: 'Тревоги и Alarm Management (ISA-18.2)' },
-  { n: 14, title: 'FoxView / FoxDraw (и Control HMI обзорно), тренды' },
-  { n: 15, title: 'System Manager и System Definition' },
+  { n: 13, title: 'Alarm Management для инженера (ISA-18.2, рационализация); операторская часть — в курсе 2300v8' },
+  { n: 14, title: 'FoxDraw: построение мнемосхем (работа в FoxView — в курсе 2300v8)' },
   { n: 16, title: 'Интеграция и безопасность: FDC280, SIS, кибербезопасность' },
 ]
 
@@ -122,6 +164,27 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'Deviation', def: 'Отклонение: запись о несоответствии (например, тест не прошёл) с расследованием и исправлением.', module: 'm9' },
   { term: 'Audit trail', def: 'Журнал изменений: кто, когда, что, старое и новое значение (21 CFR Part 11, Annex 11).', module: 'm9' },
   { term: 'ALCOA+', def: 'Принципы целостности данных: Attributable, Legible, Contemporaneous, Original, Accurate + полные, последовательные, долговечные, доступные.', module: 'm9' },
+  { term: 'Environment', def: 'Окружение FoxView: Initial, Operator, Process_Eng, Softw_Eng; смена Ctrl+E, вход по паролю.', module: 'o3' },
+  { term: 'Display bar', def: 'Панель кнопок слева в FoxView (8 или 18 кнопок) для частых дисплеев.', module: 'o3' },
+  { term: 'Annunciator Keyboard', def: 'Панель с кнопками дисплеев, лампами тревог по участкам и сиреной.', module: 'o3' },
+  { term: 'CAD', old: 'Current Alarms Display', now: 'Alarm Window', def: 'Текущие тревоги: неквитированные → квитированные → ушедшие неквитированные; Ack, Top Priority, Block Detail.', module: 'o4' },
+  { term: 'AHD', old: 'Alarm History Display', def: 'История тревог: хронология, две записи на тревогу (возврат — R), без квитирования.', module: 'o4' },
+  { term: 'Deadband (HLDB)', def: 'Зона, в которой состояние тревоги не меняется; возврат в норму только после прохода зоны.', module: 'o4' },
+  { term: 'OSV', def: 'Output Span Variance: запас за шкалой для Range-тревоги; похож на deadband, работает иначе.', module: 'o4' },
+  { term: 'CAG', def: 'Common Alarm Group — сирена панели аннунциатора, глушится с любой станции группы.', module: 'o4' },
+  { term: 'Hold / Track', def: 'Hold — выход заморожен (например, BAD измерение); Track — выход следует внешнему сигналу.', module: 'o5' },
+  { term: 'Scratchpad', def: 'Группы и тренды, которые оператор собирает сам на лету (до 20 трендов), без FoxDraw.', module: 'o6' },
+  { term: 'Pause & Pick', def: 'Пауза тренда и линия времени для чтения значений в любой точке.', module: 'o6' },
+  { term: 'Process Summary Report', def: 'Отчёт FoxSelect (Configure Report): 9 типов — off-scan, in alarm, inhibited, not in control, in manual, bad I/O.', module: 'o7' },
+  { term: 'AIM*AT / AIM*Historian', def: 'Historian I/A: история точек для трендов и тревог.', module: 'o2' },
+  { term: 'check_db_sync', def: 'Утилита: расхождения между checkpoint, CSA и рабочей базой ICC.', module: 'o2' },
+  { term: 'MTK', def: 'Master Timekeeper — AW, задающая время системы (возможно от GPS).', module: 'o8' },
+  { term: 'System Manager colours', def: 'Чёрный OK, красный отказ/off-line, жёлтый — проблема периферии, серый — нет связи, * — неквитировано.', module: 'o8' },
+  { term: 'USER_LABELS', def: 'Секция HLBL: имена для параметров (VOL_SP : RI0001).', module: 'h1' },
+  { term: 'BI0001 / RI0001 / RO0001', def: 'Пользовательские параметры блока последовательности: булевы, вещественные, целые входы и выходы.', module: 'h1' },
+  { term: 'B0400DF', def: 'HLBL User\'s Guide — руководство по языку HLBL.', module: 'h1' },
+  { term: 'Permissives', def: 'Условия старта фазы; если не выполнены — фаза ничего не трогает и выходит.', module: 'h4' },
+  { term: 'Hold / Restart / Abort', def: 'Команды фазы ISA-88: пауза с продолжением / продолжение с шага / безопасный останов без продолжения.', module: 'h4' },
   { term: 'HLBL', def: 'High Level Batch Language — язык последовательных блоков (IND, DEP, EXC, MON).' },
   { term: 'SFC', now: 'FoxSFC / Sequence Block SFC Editor', def: 'Последовательности в виде шагов и переходов.' },
 ]
